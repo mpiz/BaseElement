@@ -15,37 +15,37 @@ template<typename elementT> class BaseElement {
 	 vector<dof_type> get_dofs();
 	 vector<dof_type> get_local_dofs(); //Возвращает локальные степени свободы в глобальной нумерации
 
-	// virtual void calculate() = 0;
-	// virtual void input_mesh(string file_name) = 0;
+	virtual void calculate() = 0;
+	virtual void input_mesh(string file_name) = 0;
 
-	 //virtual double vales(dof_type glob_dof_n, node pn) = 0;	// По глобальному номеру базисной функции и точке вычислем значение
-	// virtual double scalar_basis_v(dof_type loc_dof_n, node pn) = 0;	// По глобальному номеру базисной функции и точке вычислем значение
+	virtual double vales(dof_type glob_dof_n, node pn) = 0;	// По глобальному номеру базисной функции и точке вычислем значение
+	virtual double scalar_basis_v(dof_type loc_dof_n, node pn) = 0;	// По глобальному номеру базисной функции и точке вычислем значение
 
-	// virtual elementT* find_element(point pn) = 0;
+	virtual elementT* find_element(point pn) = 0;
 
 	virtual double get_lambda(elementT& el) = 0;
 
-	 void input_mesh(string file_name, int valide_code); // ввод сетки из файла для виртуального элемента
+	void input_mesh(string file_name, int valide_code); // ввод сетки из файла для виртуального элемента
 
-	 void generate_port();
-	 template<typename func_t> void generate_matrix_with_out_bound(vector<func_t> equation_right_part);
+	void generate_port();
+	template<typename func_t> void generate_matrix_with_out_bound(vector<func_t> equation_right_part);
 
-	 void get_solutions(vector<double*>& solutions_g);
-	 void get_local_glob(map<dof_type, dof_type>& loc_to_glob_g);
-	 void get_glob_local(map<dof_type, dof_type>& glob_to_loc_g);
-	 void get_virtual_glob_local(map<dof_type, dof_type>& virtual_glob_to_loc_g);
-	 void get_basis_right_parts(vector<func3d>& basis_right_parts_g);
+	void get_solutions(vector<double*>& solutions_g);
+	void get_local_glob(map<dof_type, dof_type>& loc_to_glob_g);
+	void get_glob_local(map<dof_type, dof_type>& glob_to_loc_g);
+	void get_virtual_glob_local(map<dof_type, dof_type>& virtual_glob_to_loc_g);
+	void get_basis_right_parts(vector<func3d>& basis_right_parts_g);
 
-	 double value_element(elementT* elem, point pn, dof_type dof_i = 0);
-	 
-	 int get_local_elements_n();
-	 int get_local_nodes_n();
-	 int get_local_dofs_n();
+	double value_element(elementT* elem, point pn, dof_type dof_i = 0);
+	
+	int get_local_elements_n();
+	int get_local_nodes_n();
+	int get_local_dofs_n();
 
-	 int& operator [] (int loc_n);
+	int& operator [] (int loc_n);
 
-	 void set_virtual_solution(vector<double>& virt_sol);
-	// void set_virtual_solution_to_elements();
+	void set_virtual_solution(vector<double>& virt_sol);
+	void set_virtual_solution_to_elements();
 
  protected:
 
