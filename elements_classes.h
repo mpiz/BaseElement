@@ -1,6 +1,6 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
-#include "geom_classes.h"
+#include "add_geom_classes.h"
 #include "L_cords_gen.h"
 #include <functional>
 #include <cstdio>
@@ -12,33 +12,57 @@ typedef function<vec3d(double, double, double)> vfunc3d;
 const int gauss_points_tr = 3;
 const int gauss_points_tet = 4;
 
+class simple_element;
+class sector;
 class trelement;
 class tetelement;
+
+
+typedef vec3d (simple_element::*s_vbfunc)(double x, double y, double z);
 
 typedef double (trelement::*tr_bfunc)(double x, double y, double z);
 typedef vec3d (trelement::*tr_vbfunc)(double x, double y, double z);
 typedef double (tetelement::*tet_bfunc)(double x, double y, double z);
 typedef vec3d (tetelement::*tet_vbfunc)(double x, double y, double z);
 
+class simple_element {
 
-class sector {
+public:
+	void get_basis(dof_type order, dof_type num, vector<s_vbfunc>& func);
+
+private:
+
+	virtual vec3d vbasis_1_1(double x, double y, double z);
+};
+
+
+class sector : public simple_element {
 public:
 
-	 sector();
-	 sector(vector<node> nodes_s, vector<dof_type> s_dofs);
+
+	sector();
+	sector(const vector<node>& nodes_s, const plane& plane_s);
 
 	int& operator [] (int i); //получить i-ую степень свободы
 
 	static const int element_nodes = 2;
 
 	double L2_diff(func3d f, vector<double>& q_loc);
+
 private:
 	vector<node> nodes;
-	vector<int> dofs;
+	plane sector_plane;	// Плоскость, в которой лежит отрезок
+
+	vec3d direction;
+	double length;
+
+	vec3d normal_in_plane;	// Нормальный вектор в плоскости sector_plane
+
+	vec3d vbasis_1_1(double x, double y, double z);
 
 };
 
-class trelement {
+class trelement : public simple_element {
  public:
 	 trelement();
 	 trelement(vector<node> nodes_s, vector<dof_type> s_dofs);
@@ -75,6 +99,8 @@ class trelement {
 	 double vector_jump_L2(vfunc3d f1, vfunc3d f2);
 	 
  private:
+
+	 plane tr_plane;
 
 	 void generate_L_cords();
 
@@ -121,7 +147,6 @@ class trelement {
 
 	  matrix(3) transition_matrix; //матрица перехода в локальные координаты
 
-	  point transform(point pr); //переводит глобальные координаты в локальные
 
 	  int ph_area; //физическая область
 	  point trpoint[3]; //локальные координаты точек треугольника
@@ -130,7 +155,6 @@ class trelement {
 	  double gauss_weights[gauss_points_tr];
 	  double jacobian; //якобиан для вычиления интеграла
 
-	  array<vec3d, 4> tau;
 
 	  double basis_1(double x, double y, double z);
 	  double basis_2(double x, double y, double z);
@@ -142,7 +166,7 @@ class trelement {
 };
 
 
-class tetelement {
+class tetelement : public simple_element {
  public:
 	 tetelement();
 	 tetelement(vector<node> nodes_s, vector<dof_type> s_dofs);

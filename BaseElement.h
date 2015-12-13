@@ -18,8 +18,8 @@ template<typename elementT> class BaseElement {
 	virtual void calculate() = 0;
 	virtual void input_mesh(string file_name) = 0;
 
-	virtual double vales(dof_type glob_dof_n, node pn) = 0;	// По глобальному номеру базисной функции и точке вычислем значение
-	virtual double scalar_basis_v(dof_type loc_dof_n, node pn) = 0;	// По глобальному номеру базисной функции и точке вычислем значение
+	virtual double vales(dof_type glob_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
+	virtual double scalar_basis_v(dof_type loc_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
 
 	virtual elementT* find_element(point pn) = 0;
 

@@ -1,16 +1,56 @@
 #include "elements_classes.h"
 
 
+void simple_element::get_basis(dof_type order, dof_type num, vector<s_vbfunc>& func) {
+	if (order == 1 && num == 1)
+		func.push_back(&simple_element::vbasis_1_1);
+
+}
+
+vec3d simple_element::vbasis_1_1(double x, double y, double z) {
+	return vec3d(0, 0, 0);
+}
+
 // ========  Отрезки ========
 sector::sector() {
 
 }
-sector::sector(vector<node> nodes_s, vector<dof_type> s_dofs) {
+sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
+	if (nodes_s.size() != 2) {
+		throw "More or less then 2 edge nodes!";
+	}
+
+	nodes = nodes_s;
+	sector_plane = plane_s;
+
+	direction = vec3d(nodes[0], nodes[1]);
+	length = direction.norm();
+
+	// Получим локальное представление вектора в плоскости
+	vec3d local_vector = vec3d(sector_plane.to_local_cord(nodes[0]), sector_plane.to_local_cord(nodes[1]));
+	// Получим вектор, нормальный к нему
+	node local_normal_start = node(local_vector.y, 0, 0);
+	node local_normal_end = node(0, local_vector.x, 0);
+	// Получим нормалый вектор в глобальных координатах
+	normal_in_plane = vec3d(sector_plane.to_local_cord(local_normal_start), sector_plane.to_local_cord(local_normal_end));
+	normal_in_plane = normal_in_plane / normal_in_plane.norm();
+
 
 }
 
+
 double sector::L2_diff(func3d f, vector<double>& q_loc){
 	return 0;
+}
+
+
+vec3d sector::vbasis_1_1(double x, double y, double z) {
+	node x_node(x, y, z);
+	double t = vec3d(x_node, nodes[1]).norm() / length;
+
+	vec3d res = direction + t * normal_in_plane;
+
+	return res;
 }
 
 // ======== Треугольники ========
@@ -50,41 +90,16 @@ vector<dof_type> trelement::get_dofs() {
 }
 
 void trelement::init_cords() {
-
-
-	//Построение локальной системы координат
-	vec3d g1(node_array[0], node_array[1]); 
-	vec3d g2(node_array[0], node_array[2]); 
-	vec3d e2 = g2 - ((g1*g2) / (g1*g1)) * g1;
-	vec3d e3 = g1.cross(e2);
-	normal_vector = e3;
-
-	tau[0] = g1;
-	tau[1] = g2;
-	tau[2] = vec3d(node_array[1], node_array[2]);
-
-	double h1 = g1.norm(), h2 = e2.norm();
-
-	trpoint[0] = point(0, 0, 0);
-	trpoint[1] = point(g1.norm(), 0, 0);
-
-	vec3d e1 = g1 / g1.norm();
-	e2 = e2 / e2.norm();
-	e3 = e3 / e3.norm();
-
-	for(int i = 0; i < 3; i++) {
-		transition_matrix[0][i] = e1[i];
-		transition_matrix[1][i] = e2[i];
-		transition_matrix[2][i] = e3[i];
-	}
-
-	trpoint[2] = (transition_matrix * g2).to_point();
-
+	tr_plane = plane(node_array);
 	generate_L_cords();
 
 	//Нахождене точек интегрирования по Гауссу, в локальной системе координат
 
-	jacobian = (g1.cross(g2)).norm();
+	jacobian = tr_plane.get_jacobian();
+
+	vec3d g1 = tr_plane.get_base_vec(0);
+	vec3d g2 = tr_plane.get_base_vec(1);
+	double h1 = g1.norm();
 
 	gauss_points[0] = point(h1 / 2, 0, 0);
 	gauss_points[1] = point(trpoint[2][0] / 2.0, trpoint[2][1] / 2.0, trpoint[2][2] / 2.0);
@@ -128,57 +143,16 @@ bool trelement::in_element(double x, double y, double z) {
 }
 
 point trelement::to_local_cord(point p_glob) {
-	point p_shift = p_glob;
-
-	//сдвиг
-
-	for(int i = 0; i < 3; i++)
-		p_shift[i] -= node_array[0][i];
-
-	point p_loc;
-
-	//поворот
-	for(int i = 0; i < 3; i++) {
-		p_loc[i] = 0;
-		for(int j = 0; j < 3; j++)
-			p_loc[i] += transition_matrix[i][j] * p_shift[j];
-	}
-
-	return p_loc;
+	return tr_plane.to_local_cord(p_glob);
 }
 
 point trelement::to_global_cord(point p_loc) {
-	point p_turn;
-
-	//поворот
-	for(int i = 0; i < 3; i++) {
-		p_turn[i] = 0;
-		for(int j = 0; j < 3; j++)
-			p_turn[i] += transition_matrix[j][i] * p_loc[j];
-	}
-
-	point p_glob; 
-
-	//сдвиг
-	for(int i = 0; i < 3; i++)
-		p_glob[i] = p_turn[i] + node_array[0][i];
-
-	return p_glob;
+	return tr_plane.to_global_cord(p_loc);
 
 }
 
 vec3d trelement::to_global_cord(vec3d v_loc) {
-	vec3d v_glob;
-
-	//поворот
-	for(int i = 0; i < 3; i++) {
-		v_glob[i] = 0;
-		for(int j = 0; j < 3; j++)
-			v_glob[i] += transition_matrix[j][i] * v_loc[j];
-	}
-
-
-	return v_glob;
+	return tr_plane.to_global_cord(v_loc);
 
 }
 
@@ -189,7 +163,7 @@ double trelement::scalar_basis_v(int i, double x, double y, double z) {
 }
 
 vec3d trelement::get_tau(int i) {
-	return tau[i];
+	return tr_plane.get_tau(i);
 }
 
 double trelement::integrate(func3d integ_func) {
