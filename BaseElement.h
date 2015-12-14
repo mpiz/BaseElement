@@ -6,6 +6,13 @@
 #include <set>
 #include <iostream>
 
+namespace counters {
+	static dof_type dof_count = 0;
+	dof_type get_next_dof() {
+		return dof_count++;
+	}
+};
+
 
 template<typename elementT> class BaseElement {
  public:
@@ -89,6 +96,8 @@ template<typename elementT> class BaseElement {
 	 CGM solver;
 
 	 size_t	element_order;
+
+	 static dof_type dof_count = 0;
 
 };
 

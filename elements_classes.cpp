@@ -4,6 +4,10 @@ vbfunc simple_element::get_vector_basis(dof_type order, dof_type num) {
 	return nullptr;
 }
 
+dof_type simple_element::get_dof_n(dof_type order, dof_type num = 0) {
+	return 0;
+}
+
 
 // ========  Отрезки ========
 sector::sector() {
@@ -45,6 +49,16 @@ vbfunc sector::get_vector_basis(dof_type order, dof_type num) {
 
 	throw "sector::get_vector_basis - undefined function";
 }
+
+dof_type sector::get_dof_n(dof_type order, dof_type num = 0) {
+	if (order == 1 && num == 1) {
+		return 1;
+	}
+	else if (order == 1 && num == 2) {
+		return 2;
+	}
+}
+
 
 double sector::L2_diff(func3d f, vector<double>& q_loc){
 	return 0;

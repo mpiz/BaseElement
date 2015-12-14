@@ -76,6 +76,35 @@ vec3d plane::to_global_cord(vec3d v_loc) {
 
 }
 
+bool plane::is_on_line(const array<node, 3>& points) {
+
+	vec3d line_a = vec3d(points[0], points[1]);
+	vec3d line_b = vec3d(points[0].x, points[0].y, points[0].z);
+
+	double length = line_a.norm();
+	double length_sq = length * length;
+	size_t line_num;
+
+	if (fabs(line_a.x) > 1e-16)
+		line_num = 0;
+	else
+		if (fabs(line_a.y) > 1e-16)
+			line_num = 1;
+		else
+			line_num = 2;
+
+	double t = (points[2][line_num] - line_b[line_num]) / line_a[line_num];
+	bool cond1 = (t >= -geom_err && t <= (1 + geom_err));
+	bool line_cond[3];
+	bool cond2 = true;
+	for (int i = 0; i < 3; i++) {
+		double s = line_a[i] * t + line_b[i] - points[2][i];
+		line_cond[i] = (fabs(line_a[i] * t + line_b[i] - points[2][i]) < geom_err);
+		cond2 = cond2 && line_cond[i];
+	}
+	return cond1 && cond2;
+}
+
 
 bool plane::is_on_plane(point pn) {
 	return true;

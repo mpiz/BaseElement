@@ -1,6 +1,5 @@
 #include "elements_classes.h"
 
-
 int main() {
 
 	array<node, 3> nodes;

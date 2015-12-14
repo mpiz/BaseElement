@@ -28,7 +28,8 @@ typedef function<vec3d(double, double, double)> vbfunc;
 class simple_element {
 
 public:
-	virtual vbfunc get_vector_basis(dof_type order, dof_type num);
+	virtual vbfunc get_vector_basis(dof_type order, dof_type num = 0);
+	virtual dof_type get_dof_n(dof_type order, dof_type num = 0);
 
 };
 
@@ -47,6 +48,8 @@ public:
 	double L2_diff(func3d f, vector<double>& q_loc);
 
 	vbfunc get_vector_basis(dof_type order, dof_type num);
+	dof_type get_dof_n(dof_type order, dof_type num = 0);
+
 
 private:
 	vector<node> nodes;
@@ -61,6 +64,8 @@ private:
 
 	vec3d vbasis_1_1(double x, double y, double z);
 	vec3d vbasis_1_2(double x, double y, double z);
+
+	vector<dof_type> dofs;
 
 };
 

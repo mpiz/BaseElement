@@ -17,6 +17,8 @@ class plane {
 
 	bool is_on_plane(point pn);
 
+	static bool is_on_line(const array<node, 3>& points);
+
  private:
 
 	 void init_cords(); //построение локальных координат
