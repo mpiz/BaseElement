@@ -1,10 +1,15 @@
 #include "VirtualFace_Hrot.h"
 
 
-VirtualFace_Hrot::VirtualFace_Hrot() {
+VirtualFace_Hrot::VirtualFace_Hrot() : BaseElement() {
+
 }
 
-VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, const vector<dof_type>& dofs_s, size_t order, dof_type num = 0) {
+void VirtualFace_Hrot::input_mesh(string file_name) {
+	BaseElement::input_mesh(file_name, 203);
+}
+
+VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, const vector<dof_type>& dofs_s, size_t order, dof_type num) {
 
 	nodes = nodes_s;
 	nodes_n = nodes.size();
@@ -40,14 +45,36 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, const vector<dof
 	vector<node> sector_nodes;
 	sector_nodes.resize(2);
 
+	dofs_n = 0;
+
 	//—формируем рЄбра
 	for (size_t node_i = 0; node_i < nodes_n; node_i) {
 		size_t node_next = node_i%nodes_n;
 		sector_nodes[0] = nodes[node_i];
 		sector_nodes[1] = nodes[node_next];
 
-		edges.push_back(sector(sector_nodes, face_plane));
+		sector add_sector(sector_nodes, face_plane);
+
+		auto sec_dof_n = sector::get_dof_n(order, num);
+		for(size_t dof_i = 0; dof_i < sec_dof_n; dof_i++) {
+			dof_type add_dof = counters::get_next_dof();
+			dofs.push_back(add_dof);
+			add_sector.add_dof(add_dof);
+
+			bound_functions.push_back(add_sector.get_vector_basis_dof(dof_i));
+			right_part_functions.push_back(add_sector.get_vector_right_part_dof(dof_i));
+		}
+
+		edges.push_back(add_sector);
+
 	}
+
+	dofs_n = dofs.size();
+
+}
+
+void VirtualFace_Hrot::calculate() {
+
 
 }
 

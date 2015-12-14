@@ -1,18 +1,49 @@
 #include "elements_classes.h"
 
+vbfunc simple_element::get_vector_basis_dof(size_t dof_i) {
+	return get_vector_basis(1, 0);
+}
+
 vbfunc simple_element::get_vector_basis(dof_type order, dof_type num) {
 	return nullptr;
 }
 
-dof_type simple_element::get_dof_n(dof_type order, dof_type num = 0) {
-	return 0;
+void simple_element::add_dof(dof_type d) {
+	dofs.push_back(d);
+	dofs_number = dofs.size();
 }
 
+vbfunc simple_element::get_vector_right_part_dof(size_t dof_i) {
+	return get_vector_right_part(1, 0);
+}
+
+vbfunc simple_element::get_vector_right_part(dof_type order, dof_type num) {
+	return nullptr;
+}
+
+
+dyn_matrix simple_element::get_local_matrix(double mu) {
+	throw;
+}
+
+double simple_element::integrate(func3d func) {
+
+	double res = 0;
+
+	for(int i = 0; i < gauss_points_n; i++) {
+		res += gauss_weights[i] * func(gauss_points_global[i].x, gauss_points_global[i].y, gauss_points_global[i].z);
+	}
+
+	res *= jacobian;
+
+	return res;
+}
 
 // ========  Отрезки ========
 sector::sector() {
 
 }
+
 sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
 	if (nodes_s.size() != 2) {
 		throw "More or less then 2 edge nodes!";
@@ -21,20 +52,80 @@ sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
 	nodes = nodes_s;
 	sector_plane = plane_s;
 
+	// Зададим строгий порядок узлов
+	if (nodes[0].number > nodes[1].number)
+		swap(nodes[0], nodes[1]);
+
+	init_coords();
+}
+
+sector::sector(vector<node> nodes_s, vector<dof_type> s_dofs) {
+	dofs = s_dofs;
+	dofs_number = dofs.size();
+	nodes = nodes_s;
+
+	init_coords();
+
+}
+
+void sector::init_coords() {
 	direction = vec3d(nodes[0], nodes[1]);
 	length = direction.norm();
 	direction = direction / length;
 
-	// Получим локальное представление вектора в плоскости
-	vec3d local_vector = vec3d(sector_plane.to_local_cord(nodes[0]), sector_plane.to_local_cord(nodes[1]));
-	// Получим вектор, нормальный к нему
-	node local_normal_start = node(local_vector.y, 0, 0);
-	node local_normal_end = node(0, local_vector.x, 0);
-	// Получим нормалый вектор в глобальных координатах
-	normal_in_plane = vec3d(sector_plane.to_local_cord(local_normal_start), sector_plane.to_local_cord(local_normal_end));
-	normal_in_plane = normal_in_plane / normal_in_plane.norm();
+	if (sector_plane.get_jacobian() != 0) {
+		// Получим локальное представление вектора в плоскости
+		vec3d local_vector = vec3d(sector_plane.to_local_cord(nodes[0]), sector_plane.to_local_cord(nodes[1]));
+		// Получим вектор, нормальный к нему
+		node local_normal_start = node(local_vector.y, 0, 0);
+		node local_normal_end = node(0, local_vector.x, 0);
+		// Получим нормалый вектор в глобальных координатах
+		normal_in_plane = vec3d(sector_plane.to_local_cord(local_normal_start), sector_plane.to_local_cord(local_normal_end));
+		normal_in_plane = normal_in_plane / normal_in_plane.norm();
+	}
+}
+
+dyn_matrix sector::get_local_matrix(double mu) {
+	dyn_matrix M;
+
+	M.resize(dofs_number);
+
+	for(int i = 0; i < dofs_number; i++) {
+		M[i].resize(dofs_number);
+		for(int j = 0; j <= i; j++) {
+			M[i][j] = integrate([&](double x, double y, double z)->double {
+
+				auto f_i = get_vector_basis_dof(i)(x, y, z) * direction;
+				auto f_j = get_vector_basis_dof(j)(x, y, z) * direction;
+
+				return f_i * f_j;
+			});
+			M[j][i] = M[i][j];
+		}
+	}
+
+	return M;
+}
+
+dof_type sector::get_dof_n(dof_type order, dof_type num) {
+	if (order == 1 && num == 1) {
+		return 1;
+	}
+	else if (order == 1 && num == 2) {
+		return 2;
+	}
+}
 
 
+vbfunc sector::get_vector_basis_dof(size_t dof_i) {
+	switch(dof_i) {
+	case 0: 
+		return get_vector_basis(1, 1);
+	case 1 :
+		return get_vector_basis(1, 2);
+	}
+
+	throw "sector::get_vector_basis - undefined function";
 }
 
 vbfunc sector::get_vector_basis(dof_type order, dof_type num) {
@@ -50,15 +141,29 @@ vbfunc sector::get_vector_basis(dof_type order, dof_type num) {
 	throw "sector::get_vector_basis - undefined function";
 }
 
-dof_type sector::get_dof_n(dof_type order, dof_type num = 0) {
-	if (order == 1 && num == 1) {
-		return 1;
+vbfunc sector::get_vector_right_part_dof(size_t dof_i) {
+	switch(dof_i) {
+	case 0: 
+		return get_vector_right_part(1, 1);
+	case 1 :
+		return get_vector_right_part(1, 2);
 	}
-	else if (order == 1 && num == 2) {
-		return 2;
-	}
+
+	throw "sector::get_vector_right_part - undefined function";
 }
 
+vbfunc sector::get_vector_right_part(dof_type order, dof_type num) {
+	if (order == 1 && num == 1)
+		return [&](double x, double y, double z)->vec3d {
+			return k_sq * vbasis_1_1(x, y, z);
+		};
+	else if (order == 1 && num == 2)
+		return [&](double x, double y, double z)->vec3d {
+			return k_sq * vbasis_1_2(x, y, z);
+		};
+
+	throw "sector::get_vector_right_part - undefined function";
+}
 
 double sector::L2_diff(func3d f, vector<double>& q_loc){
 	return 0;
@@ -84,9 +189,11 @@ vec3d sector::vbasis_1_2(double x, double y, double z) {
 // ======== Треугольники ========
 
 trelement::trelement() {
+	gauss_points_n = gauss_points_tr;
 }
 
 trelement::trelement(vector<node> nodes_s, vector<dof_type> s_dofs) {
+	gauss_points_n = gauss_points_tr;
 	node_array[0] = nodes_s[0];
 	node_array[1] = nodes_s[1];
 	node_array[2] = nodes_s[2];
@@ -194,19 +301,6 @@ vec3d trelement::get_tau(int i) {
 	return tr_plane.get_tau(i);
 }
 
-double trelement::integrate(func3d integ_func) {
-
-	double res = 0;
-
-	for(int i = 0; i < gauss_points_tr; i++) {
-		res += gauss_weights[i] * integ_func(gauss_points_global[i].x, gauss_points_global[i].y, gauss_points_global[i].z);
-	}
-
-	res *= jacobian;
-
-	return res;
-
-}
 
 void trelement::generate_L_cords() {
 
@@ -330,6 +424,7 @@ vec3d trelement::grad_basis_3(double x, double y, double z) {
 // ======== Тетраэдры ========
 
 tetelement::tetelement() {
+	gauss_points_n = gauss_points_tet;
 }
 
 tetelement::tetelement(vector<node> nodes_s, vector<dof_type> s_dofs) {
@@ -511,7 +606,7 @@ void tetelement::init_coords() {
 
 	for(int i = 0; i < 4; i++)
 		for(int j = 0; j < 3; j++)
-			gauss_points[i][j] = Gauss_cord_gl[j][i];
+			gauss_points_global[i][j] = Gauss_cord_gl[j][i];
 
 	for(int i = 0; i < gauss_points_tet; i++)
 		gauss_weights[i] = 1.0 / 24.0;
@@ -581,20 +676,6 @@ double tetelement::lambda(int i, point p_glob) {
 
 vec3d tetelement::grad_lambda(int i) {
 	return vec3d(L_cord_matrix[i][0], L_cord_matrix[i][1], L_cord_matrix[i][2]);
-}
-
-double tetelement::integrate(func3d integ_func) {
-
-	double res = 0;
-	for(int i = 0; i < gauss_points_tet; i++) {
-		double func_v = integ_func(gauss_points[i].x, gauss_points[i].y, gauss_points[i].z);
-		res += gauss_weights[i] * func_v;
-	}
-
-	res *= jacobian;
-
-	return res;
-
 }
 
 dyn_matrix tetelement::get_local_matrix(double mu) {

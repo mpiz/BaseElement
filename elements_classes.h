@@ -28,9 +28,30 @@ typedef function<vec3d(double, double, double)> vbfunc;
 class simple_element {
 
 public:
+	virtual vbfunc get_vector_basis_dof(size_t dof_i);
 	virtual vbfunc get_vector_basis(dof_type order, dof_type num = 0);
-	virtual dof_type get_dof_n(dof_type order, dof_type num = 0);
 
+
+	virtual vbfunc get_vector_right_part_dof(size_t dof_i);
+	virtual vbfunc get_vector_right_part(dof_type order, dof_type num = 0);
+
+	virtual dyn_matrix get_local_matrix(double mu);
+	virtual double integrate(func3d func);	// Вычисление интеграла по элементу
+
+
+	void add_dof(dof_type d);
+
+
+protected:
+	
+	vector<dof_type> dofs;
+	unsigned int dofs_number;
+
+
+	size_t gauss_points_n;
+	double jacobian;
+	point gauss_points_global[gauss_points_tr]; //точки для интегрирования по Гауссу (в локальной системе координат)
+	double gauss_weights[gauss_points_tr];
 };
 
 
@@ -40,6 +61,7 @@ public:
 
 	sector();
 	sector(const vector<node>& nodes_s, const plane& plane_s);
+	sector(vector<node> nodes_s, vector<dof_type> s_dofs);
 
 	int& operator [] (int i); //получить i-ую степень свободы
 
@@ -47,8 +69,16 @@ public:
 
 	double L2_diff(func3d f, vector<double>& q_loc);
 
+	vbfunc get_vector_basis_dof(size_t dof_i);
 	vbfunc get_vector_basis(dof_type order, dof_type num);
-	dof_type get_dof_n(dof_type order, dof_type num = 0);
+
+	vbfunc get_vector_right_part_dof(size_t dof_i);
+	vbfunc get_vector_right_part(dof_type order, dof_type num = 0);
+
+
+	static dof_type get_dof_n(dof_type order, dof_type num);
+
+	dyn_matrix get_local_matrix(double mu);
 
 
 private:
@@ -65,7 +95,10 @@ private:
 	vec3d vbasis_1_1(double x, double y, double z);
 	vec3d vbasis_1_2(double x, double y, double z);
 
-	vector<dof_type> dofs;
+	double k_sq;
+
+	void init_coords();
+
 
 };
 
@@ -88,8 +121,6 @@ class trelement : public simple_element {
 
 	 array<int, 3> loc_edge;
 
-	 double integrate(func3d integ_func);//вычисление интеграла по треугольнику в глобальных координатах
-
 	 bool in_element(double x, double y, double z);
 	 bool valid_for_tree_node(double x0, double x1, double y0, double y1, double z0, double z1);
 
@@ -111,8 +142,6 @@ class trelement : public simple_element {
 
 	 void generate_L_cords();
 
-	 unsigned int dofs_number;
-
 	 point to_local_cord(point p_glob);
 	 point to_global_cord(point p_loc);
 
@@ -124,8 +153,6 @@ class trelement : public simple_element {
 
 	 vector<tr_bfunc> scalar_basis;
 	 vector<tr_vbfunc> scalar_basis_grad;
-
-	 vector<dof_type> dofs;
 
 	 matrix(3) D_matrix, L_cord_matrix; //L - мтарица L-координат, D - её обратнная
 	 double det_D; //опеределитель матрицы L-координат
@@ -158,8 +185,6 @@ class trelement : public simple_element {
 	  int ph_area; //физическая область
 	  point trpoint[3]; //локальные координаты точек треугольника
 	  point gauss_points[gauss_points_tr]; //точки для интегрирования по Гауссу (в локальной системе координат)
-	  point gauss_points_global[gauss_points_tr]; //точки для интегрирования по Гауссу (в локальной системе координат)
-	  double gauss_weights[gauss_points_tr];
 	  double jacobian; //якобиан для вычиления интеграла
 
 
@@ -182,8 +207,6 @@ class tetelement : public simple_element {
 
 	 dyn_matrix get_local_matrix(double mu);
 	 vector<double> get_local_right_part(func3d rp_func);
-
-	 double integrate(func3d integ_func);
 
 	 int get_ph_area();
 	 void set_ph_area(int sph_area);
@@ -208,8 +231,6 @@ class tetelement : public simple_element {
 	 vector<tet_bfunc> scalar_basis;
 	 vector<tet_vbfunc> scalar_basis_grad;
 	 vector<tet_bfunc> scalar_basis_div_grad;
-	 vector<dof_type> dofs;
-	 unsigned int dofs_number;
 
 	 void init_coords();
 	 void generate_L_cords();
@@ -228,10 +249,6 @@ class tetelement : public simple_element {
 	 //i - строка за i-ю координану, коэф соответсенно x,y,z,1
 	 double det_D; //опеределитель матрицы L-координат
 	 matrix(12) M_matrix;
-
-	  point gauss_points[gauss_points_tet]; //точки для интегрирования по Гауссу
-	  double gauss_weights[gauss_points_tet];
-	  double jacobian; //якобиан для вычиления интеграла
 
 	  //для построения дерева
 	  array<double, 3> ch_points[5];

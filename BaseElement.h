@@ -7,8 +7,8 @@
 #include <iostream>
 
 namespace counters {
-	static dof_type dof_count = 0;
-	dof_type get_next_dof() {
+	static dof_type get_next_dof() {
+		static dof_type dof_count = 0;
 		return dof_count++;
 	}
 };
@@ -28,9 +28,9 @@ template<typename elementT> class BaseElement {
 	virtual double vales(dof_type glob_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
 	virtual double scalar_basis_v(dof_type loc_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
 
-	virtual elementT* find_element(point pn) = 0;
+	virtual elementT* find_element(point pn);
 
-	virtual double get_lambda(elementT& el) = 0;
+	virtual double get_lambda(elementT& el);
 
 	void input_mesh(string file_name, int valide_code); // ввод сетки из файла для виртуального элемента
 
@@ -96,8 +96,6 @@ template<typename elementT> class BaseElement {
 	 CGM solver;
 
 	 size_t	element_order;
-
-	 static dof_type dof_count = 0;
 
 };
 
@@ -175,6 +173,18 @@ template<typename elementT> void BaseElement<elementT>::set_virtual_solution(vec
 	virtual_solution.clear();
 	for(int i = 0; i < virt_sol_size; i++)
 		virtual_solution.push_back(virt_sol[i]);
+}
+
+template<typename elementT> double BaseElement<elementT>::vales(dof_type loc_dof_n, node pn) {
+	return 0;
+}
+template<typename elementT> double BaseElement<elementT>::scalar_basis_v(dof_type loc_dof_n, node pn) {
+	return 0;
+}
+
+template<typename elementT> elementT* BaseElement<elementT>::find_element(point pn) {
+	throw;
+	return nullptr;
 }
 
 template<typename elementT> double BaseElement<elementT>::value_element(elementT* elem, point pn, dof_type dof_i = 0) {

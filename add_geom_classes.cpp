@@ -1,7 +1,7 @@
 #include "add_geom_classes.h"
 
 plane::plane() {
-
+	jacobian = 0;
 }
 
 plane::plane(const array<node, 3>& points) {
@@ -76,7 +76,7 @@ vec3d plane::to_global_cord(vec3d v_loc) {
 
 }
 
-bool plane::is_on_line(const array<node, 3>& points) {
+bool plane::is_on_line(array<node, 3>& points) {
 
 	vec3d line_a = vec3d(points[0], points[1]);
 	vec3d line_b = vec3d(points[0].x, points[0].y, points[0].z);

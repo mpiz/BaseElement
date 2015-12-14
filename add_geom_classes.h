@@ -17,7 +17,7 @@ class plane {
 
 	bool is_on_plane(point pn);
 
-	static bool is_on_line(const array<node, 3>& points);
+	static bool is_on_line(array<node, 3>& points);
 
  private:
 
