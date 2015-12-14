@@ -4,6 +4,7 @@
 #include <complex>
 #include <vector>
 #include <omp.h>
+#include <functional>
 
 using namespace std;
 // Для быстрого отключения вывода отладочной информации

@@ -16,10 +16,18 @@ int main() {
 
 	sector s(s_nodes, pl);
 
-	vector<s_vbfunc> f;
+	vector<vbfunc> f;
+	f.reserve(2);
 
-	s.get_basis(1, 1, f);
+	f.push_back(s.get_vector_basis(1, 1));
+	f.push_back(s.get_vector_basis(1, 2));
 
+	auto res = f[0](0.5, 0.5, 0);
+	auto res2 = f[1](0.5, 0.5, 0);
+
+
+	auto val = res * vec3d(1, 1, 0) / vec3d(1, 1, 0).norm();
+	auto val2 = res2 * vec3d(1, 1, 0) / vec3d(1, 1, 0).norm();
 
 	return 0;
 }

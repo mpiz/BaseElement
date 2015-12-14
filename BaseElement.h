@@ -88,6 +88,8 @@ template<typename elementT> class BaseElement {
 
 	 CGM solver;
 
+	 size_t	element_order;
+
 };
 
 // ========================================================================

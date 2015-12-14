@@ -1,15 +1,9 @@
 #include "elements_classes.h"
 
-
-void simple_element::get_basis(dof_type order, dof_type num, vector<s_vbfunc>& func) {
-	if (order == 1 && num == 1)
-		func.push_back(&simple_element::vbasis_1_1);
-
+vbfunc simple_element::get_vector_basis(dof_type order, dof_type num) {
+	return nullptr;
 }
 
-vec3d simple_element::vbasis_1_1(double x, double y, double z) {
-	return vec3d(0, 0, 0);
-}
 
 // ========  Отрезки ========
 sector::sector() {
@@ -25,6 +19,7 @@ sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
 
 	direction = vec3d(nodes[0], nodes[1]);
 	length = direction.norm();
+	direction = direction / length;
 
 	// Получим локальное представление вектора в плоскости
 	vec3d local_vector = vec3d(sector_plane.to_local_cord(nodes[0]), sector_plane.to_local_cord(nodes[1]));
@@ -38,18 +33,37 @@ sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
 
 }
 
+vbfunc sector::get_vector_basis(dof_type order, dof_type num) {
+	if (order == 1 && num == 1)
+		return [&](double x, double y, double z)->vec3d {
+			return vbasis_1_1(x, y, z);
+		};
+	else if (order == 1 && num == 2)
+		return [&](double x, double y, double z)->vec3d {
+			return vbasis_1_2(x, y, z);
+		};
+
+	throw "sector::get_vector_basis - undefined function";
+}
 
 double sector::L2_diff(func3d f, vector<double>& q_loc){
 	return 0;
 }
 
+double sector::get_t(double x, double y, double z) {
+	node x_node(x, y, z);
+	return vec3d(x_node, nodes[1]).norm() / length;
+}
 
 vec3d sector::vbasis_1_1(double x, double y, double z) {
-	node x_node(x, y, z);
-	double t = vec3d(x_node, nodes[1]).norm() / length;
-
+	double t = get_t(x, y, z);
 	vec3d res = direction + t * normal_in_plane;
+	return res;
+}
 
+vec3d sector::vbasis_1_2(double x, double y, double z) {
+	double t = get_t(x, y, z);
+	vec3d res = (1 - 2*t) * direction - t * normal_in_plane;
 	return res;
 }
 

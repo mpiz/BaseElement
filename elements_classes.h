@@ -18,21 +18,18 @@ class trelement;
 class tetelement;
 
 
-typedef vec3d (simple_element::*s_vbfunc)(double x, double y, double z);
-
 typedef double (trelement::*tr_bfunc)(double x, double y, double z);
 typedef vec3d (trelement::*tr_vbfunc)(double x, double y, double z);
 typedef double (tetelement::*tet_bfunc)(double x, double y, double z);
 typedef vec3d (tetelement::*tet_vbfunc)(double x, double y, double z);
 
+typedef function<vec3d(double, double, double)> vbfunc;
+
 class simple_element {
 
 public:
-	void get_basis(dof_type order, dof_type num, vector<s_vbfunc>& func);
+	virtual vbfunc get_vector_basis(dof_type order, dof_type num);
 
-private:
-
-	virtual vec3d vbasis_1_1(double x, double y, double z);
 };
 
 
@@ -49,6 +46,8 @@ public:
 
 	double L2_diff(func3d f, vector<double>& q_loc);
 
+	vbfunc get_vector_basis(dof_type order, dof_type num);
+
 private:
 	vector<node> nodes;
 	plane sector_plane;	// Плоскость, в которой лежит отрезок
@@ -58,7 +57,10 @@ private:
 
 	vec3d normal_in_plane;	// Нормальный вектор в плоскости sector_plane
 
+	double get_t(double x, double y, double z);
+
 	vec3d vbasis_1_1(double x, double y, double z);
+	vec3d vbasis_1_2(double x, double y, double z);
 
 };
 
