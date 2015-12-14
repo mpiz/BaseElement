@@ -39,9 +39,16 @@ double simple_element::integrate(func3d func) {
 	return res;
 }
 
+void simple_element::prepare_gauss(int gn) {
+	gauss_points_n = gn;
+	gauss_points_global.resize(gauss_points_n);
+	gauss_weights.resize(gauss_points_n);
+
+}
+
 // ========  Отрезки ========
 sector::sector() {
-
+	prepare_gauss(gauss_points_sec);
 }
 
 sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
@@ -69,9 +76,23 @@ sector::sector(vector<node> nodes_s, vector<dof_type> s_dofs) {
 }
 
 void sector::init_coords() {
+	prepare_gauss(gauss_points_sec);
+
 	direction = vec3d(nodes[0], nodes[1]);
 	length = direction.norm();
 	direction = direction / length;
+
+	jacobian = length / 2.0;
+
+	double gauss_coeff = sqrt(3.0 / 5.0);
+
+	gauss_points_global[0] = get_point((-gauss_coeff + 1) / 2.0);
+	gauss_points_global[1] = get_point(0.5);
+	gauss_points_global[2] = get_point((-gauss_coeff + 1) / 2.0);;
+
+	gauss_weights[0] = 5.0 / 9.0;
+	gauss_weights[1] = 8.0 / 9.0;
+	gauss_weights[2] = 5.0 / 9.0;
 
 	if (sector_plane.get_jacobian() != 0) {
 		// Получим локальное представление вектора в плоскости
@@ -83,6 +104,20 @@ void sector::init_coords() {
 		normal_in_plane = vec3d(sector_plane.to_local_cord(local_normal_start), sector_plane.to_local_cord(local_normal_end));
 		normal_in_plane = normal_in_plane / normal_in_plane.norm();
 	}
+}
+
+
+double sector::get_t(double x, double y, double z) {
+	node x_node(x, y, z);
+	return vec3d(x_node, nodes[1]).norm() / length;
+}
+
+
+point sector::get_point(double t) {
+	point res = (vec3d(nodes[0]) +  t * direction).to_point();
+
+	return res;
+
 }
 
 dyn_matrix sector::get_local_matrix(double mu) {
@@ -169,10 +204,6 @@ double sector::L2_diff(func3d f, vector<double>& q_loc){
 	return 0;
 }
 
-double sector::get_t(double x, double y, double z) {
-	node x_node(x, y, z);
-	return vec3d(x_node, nodes[1]).norm() / length;
-}
 
 vec3d sector::vbasis_1_1(double x, double y, double z) {
 	double t = get_t(x, y, z);
@@ -189,11 +220,14 @@ vec3d sector::vbasis_1_2(double x, double y, double z) {
 // ======== Треугольники ========
 
 trelement::trelement() {
-	gauss_points_n = gauss_points_tr;
+	prepare_gauss(gauss_points_tr);
+	gauss_points.resize(gauss_points_tr);
 }
 
 trelement::trelement(vector<node> nodes_s, vector<dof_type> s_dofs) {
-	gauss_points_n = gauss_points_tr;
+	prepare_gauss(gauss_points_tr);
+	gauss_points.resize(gauss_points_tr);
+
 	node_array[0] = nodes_s[0];
 	node_array[1] = nodes_s[1];
 	node_array[2] = nodes_s[2];
@@ -424,10 +458,12 @@ vec3d trelement::grad_basis_3(double x, double y, double z) {
 // ======== Тетраэдры ========
 
 tetelement::tetelement() {
-	gauss_points_n = gauss_points_tet;
+	prepare_gauss(gauss_points_tet);
 }
 
 tetelement::tetelement(vector<node> nodes_s, vector<dof_type> s_dofs) {
+	prepare_gauss(gauss_points_tet);
+
 	node_array[0] = nodes_s[0];
 	node_array[1] = nodes_s[1];
 	node_array[2] = nodes_s[2];

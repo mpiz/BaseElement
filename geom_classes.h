@@ -45,6 +45,7 @@ class vec3d {
 	vec3d(double s_x, double s_y, double s_z);
 	vec3d(point start, point end);
 	vec3d(node start, node end);
+	vec3d(node nd);
 
 	double& operator [] (int i);
 	double operator * (const vec3d pr);
@@ -63,6 +64,9 @@ class vec3d {
 	double x, y, z;
 
 	static bool collinear(vec3d a, vec3d b);
+
+private:
+	void init_coord(double s_x, double s_y, double s_z);
 };
 
 class edge {

@@ -9,6 +9,7 @@
 typedef function<double(double, double, double)> func3d;
 typedef function<vec3d(double, double, double)> vfunc3d;
 
+const int gauss_points_sec = 3;
 const int gauss_points_tr = 3;
 const int gauss_points_tet = 4;
 
@@ -40,6 +41,7 @@ public:
 
 
 	void add_dof(dof_type d);
+	void prepare_gauss(int gn);
 
 
 protected:
@@ -50,8 +52,8 @@ protected:
 
 	size_t gauss_points_n;
 	double jacobian;
-	point gauss_points_global[gauss_points_tr]; //точки для интегрирования по Гауссу (в локальной системе координат)
-	double gauss_weights[gauss_points_tr];
+	vector<point> gauss_points_global; //точки для интегрирования по Гауссу (в локальной системе координат)
+	vector<double> gauss_weights;
 };
 
 
@@ -91,6 +93,7 @@ private:
 	vec3d normal_in_plane;	// Нормальный вектор в плоскости sector_plane
 
 	double get_t(double x, double y, double z);
+	point get_point(double t);
 
 	vec3d vbasis_1_1(double x, double y, double z);
 	vec3d vbasis_1_2(double x, double y, double z);
@@ -184,7 +187,7 @@ class trelement : public simple_element {
 
 	  int ph_area; //физическая область
 	  point trpoint[3]; //локальные координаты точек треугольника
-	  point gauss_points[gauss_points_tr]; //точки для интегрирования по Гауссу (в локальной системе координат)
+	  vector<point> gauss_points; //точки для интегрирования по Гауссу (в локальной системе координат)
 	  double jacobian; //якобиан для вычиления интеграла
 
 

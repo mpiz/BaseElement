@@ -111,7 +111,15 @@ vec3d::vec3d(node start, node end){
 }
 
 vec3d::vec3d(double sx, double sy, double sz) {
-	x = sx; y = sy; z = sz;	
+	init_coord(sx, sy, sz);
+}
+
+vec3d::vec3d(node nd) {
+	init_coord(nd.x, nd.y, nd.z);
+}
+
+void vec3d::init_coord(double s_x, double s_y, double s_z) {
+	x = s_x; y = s_y; z = s_z;	
 }
 
 // Проверим, что вектора коллинеарны, т.е. линейно независимы
