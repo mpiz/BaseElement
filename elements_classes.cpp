@@ -65,10 +65,6 @@ sector::sector() {
 }
 
 sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
-	if (nodes_s.size() != 2) {
-		throw "More or less then 2 edge nodes!";
-	}
-
 	nodes = nodes_s;
 	sector_plane = plane_s;
 
@@ -89,6 +85,10 @@ sector::sector(vector<node> nodes_s, vector<dof_type> s_dofs) {
 }
 
 void sector::init_coords() {
+	if (nodes.size() != 2) {
+		throw "More or less then 2 edge nodes!";
+	}
+
 	prepare_gauss(gauss_points_sec);
 
 	direction = vec3d(nodes[0], nodes[1]);
@@ -135,9 +135,20 @@ double sector::get_t(double x, double y, double z) {
 
 
 point sector::get_point(double t) {
-	point res = (vec3d(nodes[0]) +  t * direction).to_point();
+	point res = (vec3d(nodes[0]) +  t * length * direction).to_point();
 
 	return res;
+
+}
+
+void sector::for_point_on_element(function<void(double, double, double)> func) {
+	double t = 0;
+	double h = 0.1;
+	while (t < 1) {
+		point pn = get_point(t);
+		func(pn.x, pn.y, pn.z);
+		t += h;
+	}
 
 }
 
@@ -197,6 +208,13 @@ vfunc3d sector::get_vector_basis_dof(size_t dof_i) {
 	}
 
 	throw "sector::get_vector_basis - undefined function";
+}
+
+func3d sector::get_vector_basis_dof_tau(size_t dof_i) {
+	return [=](double x, double y, double z)->double {
+		return get_vector_basis_dof(dof_i)(x, y, z) * direction;
+	};
+
 }
 
 vfunc3d sector::get_vector_basis(dof_type order, dof_type num) {

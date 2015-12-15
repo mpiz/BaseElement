@@ -74,6 +74,7 @@ public:
 
 	vfunc3d get_vector_basis_dof(size_t dof_i);
 	vfunc3d get_vector_basis(dof_type order, dof_type num);
+	func3d get_vector_basis_dof_tau(size_t dof_i);		// Тангенсальная компонента функции get_vector_basis_dof(dof_i)
 
 	vfunc3d get_vector_right_part_dof(size_t dof_i);
 	vfunc3d get_vector_right_part(dof_type order, dof_type num = 0);
@@ -85,6 +86,8 @@ public:
 	vector<double> get_local_right_part(vfunc3d rp_func);
 
 	bool in_element(double x, double y, double z);
+
+	void for_point_on_element(function<void(double, double, double)> func);
 
 private:
 	vector<node> nodes;

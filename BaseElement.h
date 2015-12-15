@@ -24,6 +24,8 @@ template<typename elementT> class BaseElement {
 
 	virtual void calculate() = 0;
 	virtual void input_mesh(string file_name) = 0;
+	virtual vector<dof_type> calc_element_dofs(vector<node>& el_nodes); // Функци получения степеней свободы элемента по его узлам
+	vector<dof_type> calc_element_dofs_edge(vector<node>& el_nodes, int dof_per_element); // Функци получения степеней свободы для рёбер
 
 	virtual double vales(dof_type glob_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
 	virtual double scalar_basis_v(dof_type loc_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
@@ -99,6 +101,8 @@ template<typename elementT> class BaseElement {
 
 	 size_t	element_order;
 
+	 map<tuple<int, int, int>, dof_type> edge_type_dofs; // Edge-степени свободы для векторных методов первые два int - номера узлов, второй - номер функции
+	 dof_type local_dof_counter;
 };
 
 // ========================================================================
@@ -107,7 +111,7 @@ template<typename elementT> class BaseElement {
 
 
 template<typename elementT> BaseElement<elementT>::BaseElement() {
-
+	local_dof_counter = 0;
 }
 
 template<typename elementT> BaseElement<elementT>::BaseElement(vector<node>& nodes_s, vector<dof_type>& dofs_s) {
@@ -361,6 +365,42 @@ template<typename elementT> void BaseElement<elementT>::solve_SLAE() {
 	}
 }
 
+template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element_dofs_edge(vector<node>& el_nodes, int dof_per_element) {
+	vector<dof_type> el_dofs;
+	auto el_nodes_n = el_nodes.size();
+	for(size_t node_i = 0; node_i < el_nodes_n; node_i++) {
+		size_t next_node = (node_i + 1) % el_nodes_n;
+		int n1 = min(el_nodes[node_i].number, el_nodes[node_next].number);
+		int n2 = min(el_nodes[node_i].number, el_nodes[node_next].number);
+		for(int k = 0; k < dof_per_element; k++) {
+			auto tup = make_tuple<int, int, int>(n1, n2, k);
+			auto map_res = edge_type_dofs.find(tup);
+			dof_type ins_dof;
+			if (map_res != edge_type_dofs.end()) {
+				ins_dof = map_res.second;
+			}
+			else {
+				ins_dof = local_dof_counter;
+				local_dof_counter++;
+				edge_type_dofs[tup] = ins_dof;
+			}
+
+			el_dofs.push_back(ins_dof);
+
+		}
+	}
+
+	return el_dofs;
+}
+
+template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element_dofs(vector<node>& el_nodes) {
+	// В простейшем случае степени свободы - номера узлов
+	vector<dof_type> el_dofs;
+	for(auto& node_it : el_nodes) {
+		el_dofs.push_back(node_it.number);
+	}
+
+}
 
 template<typename elementT> void BaseElement<elementT>::input_mesh(string file_name, int valide_code) {
 	ifstream inp_file(file_name.c_str());
@@ -410,8 +450,8 @@ template<typename elementT> void BaseElement<elementT>::input_mesh(string file_n
 			tr_p--;
 			tr_p = glob_to_loc[tr_p];
 			tr_node.push_back(local_nodes[tr_p]);
-			tr_dofs.push_back(tr_p);
 		}
+		tr_dofs = calc_element_dofs(tr_node);
 		if(el_code == valide_code)
 			elements.push_back(elementT(tr_node, tr_dofs));
 	

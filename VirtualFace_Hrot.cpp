@@ -53,20 +53,20 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, size_t order, do
 
 	//—формируем рЄбра
 	for (size_t node_i = 0; node_i < nodes_n; node_i++) {
-		size_t node_next = node_i%nodes_n;
+		size_t node_next = (node_i + 1)%nodes_n;
 		sector_nodes[0] = nodes[node_i];
 		sector_nodes[1] = nodes[node_next];
 
-		sector add_sector(sector_nodes, face_plane);
+		sector* add_sector = new sector(sector_nodes, face_plane);
 
 		auto sec_dof_n = sector::get_dof_n(order, num);
 		for(size_t dof_i = 0; dof_i < sec_dof_n; dof_i++) {
 			dof_type add_dof = counters::get_next_dof();
 			dofs.push_back(add_dof);
-			add_sector.add_dof(add_dof);
+			add_sector->add_dof(add_dof);
 
-			bound_functions.push_back(add_sector.get_vector_basis_dof(dof_i));
-			right_part_functions.push_back(add_sector.get_vector_right_part_dof(dof_i));
+			bound_functions.push_back(add_sector->get_vector_basis_dof(dof_i));
+			right_part_functions.push_back(add_sector->get_vector_right_part_dof(dof_i));
 		}
 
 		edges.push_back(add_sector);
@@ -74,6 +74,7 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, size_t order, do
 	}
 
 	dofs_n = dofs.size();
+	bound_edge = VirtualEdge_Hrot(order, num);
 
 }
 
@@ -84,6 +85,11 @@ void VirtualFace_Hrot::calculate() {
 
 }
 
-VirtualFace_Hrot::~VirtualFace_Hrot() {
+void VirtualFace_Hrot::test_calc_points(dof_type dof_i) {
+	bound_edge.test_calc_points(dof_i);
+}
 
+VirtualFace_Hrot::~VirtualFace_Hrot() {
+	for(auto& edge : edges)
+		delete edge;
 }
