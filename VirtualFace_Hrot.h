@@ -23,8 +23,8 @@ private:
 
 	vector<sector> edges;
 
-	vector<vbfunc> bound_functions;	// Функции для учёта краевых условий
-	vector<vbfunc> right_part_functions; // Функции правой части
+	vector<vfunc3d> bound_functions;	// Функции для учёта краевых условий
+	vector<vfunc3d> right_part_functions; // Функции правой части
 
 	vector<sector> bound_elements;
 

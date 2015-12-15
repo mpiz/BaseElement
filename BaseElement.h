@@ -354,7 +354,7 @@ template<typename elementT> template<typename func_t> void BaseElement<elementT>
 
 }
 
-template<typename elementT> template<typename func_t> void BaseElement<elementT>::solve_SLAE() {
+template<typename elementT> void BaseElement<elementT>::solve_SLAE() {
 	for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
 			solver.init(&gi.front(), &gj.front(), &di.front(), &gg.front(), local_dof_n);
 			solver.solve(rp[basis_i], solutions[basis_i]);

@@ -1,11 +1,12 @@
 #include "CGM.h"
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
 
-void CGM::init(int *gi_s, int *gj_s, double *di_s, double *gg_s, double *rp_s, int n_s){
+void CGM::init(int *gi_s, int *gj_s, double *di_s, double *gg_s, int n_s){
 	gi = gi_s;
 	gj = gj_s;
 	di = di_s;
 	gg = gg_s;
-	rp = rp_s;
 	n = n_s;
 
 	int m = gi[n];
@@ -25,6 +26,8 @@ void CGM::init(int *gi_s, int *gj_s, double *di_s, double *gg_s, double *rp_s, i
 
 	for(int i = 0 ; i < m ; i++)
 		L_gg[i] = gg[i];
+
+	make_LLT_decomposition();
 }
 
 void CGM::make_LLT_decomposition(){
@@ -55,17 +58,10 @@ void CGM::make_LLT_decomposition(){
 			sum_d += L_gg[i]*L_gg[i];
 		}
 		if(L_di[k] - sum_d < 0)
-			sum_d = sum_d;
+			throw "Ошибка в разложении матрицы";
 		L_di[k] = sqrt(L_di[k] - sum_d);
 
 	}
-
-
-	for(int i = 0; i < n; i++)
-		L_di[i] = 1;
-
-	for(int i = 0; i < gi[n]; i++)
-		L_gg[i] = 0;
 }
 
 double CGM::dot_prod(double *a, double *b){
@@ -118,14 +114,14 @@ void CGM::solve_LLT(double *f, double *&x){
 	solve_LT(x,x);
 }
 
-void CGM::solve(double *&solution){
+void CGM::solve(double *rp_s, double *&solution){
+	rp = rp_s;
 
 	// Параметры решателя
 	int max_iter = 1000;
 	double eps = 1E-20;
 
 	mul_matrix(x0, r);
-	make_LLT_decomposition();
 
 	for(int i = 0; i < n ; i++)
 		r[i] = rp[i] - r[i];
@@ -146,6 +142,7 @@ void CGM::solve(double *&solution){
 	for(int iter = 0; iter < max_iter && !end; iter++){
 
 		discr = sqrt(dot_prod(r,r));
+//		printf("%d\t%.3e\n", iter, discr/rp_norm);
 		if(eps < discr/rp_norm){
 
 			mul_matrix(z, s);

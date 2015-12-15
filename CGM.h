@@ -4,8 +4,8 @@
 
 class CGM{
  public:
-	 void init(int *gi_s, int *gj_s, double *di_s, double *gg_s, double *rp_s, int n_s);
-	 void solve(double *&solution);
+	 void init(int *gi_s, int *gj_s, double *di_s, double *gg_s, int n_s);
+	 void solve(double *rp_s, double *&solution);
 
  private:
 

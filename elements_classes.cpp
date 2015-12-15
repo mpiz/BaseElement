@@ -1,10 +1,14 @@
 #include "elements_classes.h"
 
-vbfunc simple_element::get_vector_basis_dof(size_t dof_i) {
+vector<dof_type> simple_element::get_dofs() {
+	return dofs;
+}
+
+vfunc3d simple_element::get_vector_basis_dof(size_t dof_i) {
 	return get_vector_basis(1, 0);
 }
 
-vbfunc simple_element::get_vector_basis(dof_type order, dof_type num) {
+vfunc3d simple_element::get_vector_basis(dof_type order, dof_type num) {
 	return nullptr;
 }
 
@@ -13,18 +17,27 @@ void simple_element::add_dof(dof_type d) {
 	dofs_number = dofs.size();
 }
 
-vbfunc simple_element::get_vector_right_part_dof(size_t dof_i) {
+vfunc3d simple_element::get_vector_right_part_dof(size_t dof_i) {
 	return get_vector_right_part(1, 0);
 }
 
-vbfunc simple_element::get_vector_right_part(dof_type order, dof_type num) {
+vfunc3d simple_element::get_vector_right_part(dof_type order, dof_type num) {
 	return nullptr;
 }
 
+vector<double> simple_element::get_local_right_part(func3d rp_func) {
+	throw;
+}
+
+vector<double> simple_element::get_local_right_part(vfunc3d rp_func) {
+	throw;
+}
 
 dyn_matrix simple_element::get_local_matrix(double mu) {
 	throw;
 }
+
+
 
 double simple_element::integrate(func3d func) {
 
@@ -109,6 +122,11 @@ void sector::init_coords() {
 	}
 }
 
+bool sector::in_element(double x, double y, double z) {
+	array<node, 3> points = {nodes[0], nodes[1], node(x, y, z)};
+	return plane::is_on_line(points);
+}
+
 
 double sector::get_t(double x, double y, double z) {
 	node x_node(x, y, z);
@@ -145,6 +163,21 @@ dyn_matrix sector::get_local_matrix(double mu) {
 	return M;
 }
 
+vector<double> sector::get_local_right_part(vfunc3d rp_func) {
+	vector<double> b;
+	b.resize(dofs_number);
+	for(int i = 0; i < dofs_number; i++)
+		b[i] = integrate([&](double x, double y, double z)->double {
+			auto fval = rp_func(x, y, z);
+			double tau_val = fval * direction;
+			auto basis_val = get_vector_basis_dof(i)(x,y,z) * direction;
+			return tau_val * basis_val;
+		}
+	);
+
+	return b;
+}
+
 dof_type sector::get_dof_n(dof_type order, dof_type num) {
 	if (order == 1 && num == 1) {
 		return 1;
@@ -155,7 +188,7 @@ dof_type sector::get_dof_n(dof_type order, dof_type num) {
 }
 
 
-vbfunc sector::get_vector_basis_dof(size_t dof_i) {
+vfunc3d sector::get_vector_basis_dof(size_t dof_i) {
 	switch(dof_i) {
 	case 0: 
 		return get_vector_basis(1, 1);
@@ -166,7 +199,7 @@ vbfunc sector::get_vector_basis_dof(size_t dof_i) {
 	throw "sector::get_vector_basis - undefined function";
 }
 
-vbfunc sector::get_vector_basis(dof_type order, dof_type num) {
+vfunc3d sector::get_vector_basis(dof_type order, dof_type num) {
 	if (order == 1 && num == 1)
 		return [&](double x, double y, double z)->vec3d {
 			return vbasis_1_1(x, y, z);
@@ -179,7 +212,7 @@ vbfunc sector::get_vector_basis(dof_type order, dof_type num) {
 	throw "sector::get_vector_basis - undefined function";
 }
 
-vbfunc sector::get_vector_right_part_dof(size_t dof_i) {
+vfunc3d sector::get_vector_right_part_dof(size_t dof_i) {
 	switch(dof_i) {
 	case 0: 
 		return get_vector_right_part(1, 1);
@@ -190,7 +223,7 @@ vbfunc sector::get_vector_right_part_dof(size_t dof_i) {
 	throw "sector::get_vector_right_part - undefined function";
 }
 
-vbfunc sector::get_vector_right_part(dof_type order, dof_type num) {
+vfunc3d sector::get_vector_right_part(dof_type order, dof_type num) {
 	if (order == 1 && num == 1)
 		return [&](double x, double y, double z)->vec3d {
 			return k_sq * vbasis_1_1(x, y, z);
@@ -209,14 +242,24 @@ double sector::L2_diff(func3d f, vector<double>& q_loc){
 
 
 vec3d sector::vbasis_1_1(double x, double y, double z) {
-	double t = get_t(x, y, z);
-	vec3d res = direction + t * normal_in_plane;
+	vec3d res;
+	if (in_element(x, y, z)) {
+		double t = get_t(x, y, z);
+		res = direction + t * normal_in_plane;
+	}
+	else
+		res = vec3d(0, 0, 0);
 	return res;
 }
 
 vec3d sector::vbasis_1_2(double x, double y, double z) {
-	double t = get_t(x, y, z);
-	vec3d res = (1 - 2*t) * direction - t * normal_in_plane;
+	vec3d res;
+	if (in_element(x, y, z)) {
+		double t = get_t(x, y, z);
+		res = (1 - 2*t) * direction - t * normal_in_plane;
+	}
+	else
+		res = vec3d(0, 0, 0);
 	return res;
 }
 
@@ -257,9 +300,6 @@ void trelement::set_ph_area(int sph_area) {
 	ph_area = sph_area;
 }
 
-vector<dof_type> trelement::get_dofs() {
-	return dofs;
-}
 
 void trelement::init_cords() {
 	tr_plane = plane(node_array);
@@ -512,11 +552,6 @@ double tetelement::scalar_basis_v(int i, double x, double y, double z) {
 vec3d tetelement::scalar_basis_grad_v(int i, double x, double y, double z) {
 	return (this->*scalar_basis_grad[i])(x,y,z); 
 }
-
-vector<dof_type> tetelement::get_dofs() {
-	return dofs;
-}
-
 
 bool tetelement::in_element(double x, double y, double z) {
 	point p_glob(x,y,z);

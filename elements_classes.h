@@ -24,24 +24,25 @@ typedef vec3d (trelement::*tr_vbfunc)(double x, double y, double z);
 typedef double (tetelement::*tet_bfunc)(double x, double y, double z);
 typedef vec3d (tetelement::*tet_vbfunc)(double x, double y, double z);
 
-typedef function<vec3d(double, double, double)> vbfunc;
-
 class simple_element {
 
 public:
-	virtual vbfunc get_vector_basis_dof(size_t dof_i);
-	virtual vbfunc get_vector_basis(dof_type order, dof_type num = 0);
+	virtual vfunc3d get_vector_basis_dof(size_t dof_i);
+	virtual vfunc3d get_vector_basis(dof_type order, dof_type num = 0);
 
 
-	virtual vbfunc get_vector_right_part_dof(size_t dof_i);
-	virtual vbfunc get_vector_right_part(dof_type order, dof_type num = 0);
+	virtual vfunc3d get_vector_right_part_dof(size_t dof_i);
+	virtual vfunc3d get_vector_right_part(dof_type order, dof_type num = 0);
 
 	virtual dyn_matrix get_local_matrix(double mu);
+	virtual vector<double> get_local_right_part(func3d rp_func);
+	virtual vector<double> get_local_right_part(vfunc3d rp_func);
 	virtual double integrate(func3d func);	// Вычисление интеграла по элементу
 
 
 	void add_dof(dof_type d);
 	void prepare_gauss(int gn);
+	vector<dof_type> get_dofs();
 
 
 protected:
@@ -71,17 +72,19 @@ public:
 
 	double L2_diff(func3d f, vector<double>& q_loc);
 
-	vbfunc get_vector_basis_dof(size_t dof_i);
-	vbfunc get_vector_basis(dof_type order, dof_type num);
+	vfunc3d get_vector_basis_dof(size_t dof_i);
+	vfunc3d get_vector_basis(dof_type order, dof_type num);
 
-	vbfunc get_vector_right_part_dof(size_t dof_i);
-	vbfunc get_vector_right_part(dof_type order, dof_type num = 0);
+	vfunc3d get_vector_right_part_dof(size_t dof_i);
+	vfunc3d get_vector_right_part(dof_type order, dof_type num = 0);
 
 
 	static dof_type get_dof_n(dof_type order, dof_type num);
 
 	dyn_matrix get_local_matrix(double mu);
+	vector<double> get_local_right_part(vfunc3d rp_func);
 
+	bool in_element(double x, double y, double z);
 
 private:
 	vector<node> nodes;
@@ -101,6 +104,8 @@ private:
 	double k_sq;
 
 	void init_coords();
+
+
 
 
 };
@@ -130,8 +135,6 @@ class trelement : public simple_element {
 	 vec3d basis_v(int i, double x, double y, double z);
 	 node local_node(int i);
 	 vec3d get_tau(int i);
-
-	 vector<dof_type> get_dofs();
 
 	 static const int element_nodes = 3;
 
@@ -222,8 +225,6 @@ class tetelement : public simple_element {
 
 	 bool in_element(double x, double y, double z);
 	 bool valid_for_tree_node(double x0, double x1, double y0, double y1, double z0, double z1);
-
-	 vector<dof_type> get_dofs();
 
 	 static const int element_nodes = 4;
 
