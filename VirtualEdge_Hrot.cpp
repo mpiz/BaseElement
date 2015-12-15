@@ -4,7 +4,7 @@
 VirtualEdge_Hrot::VirtualEdge_Hrot() {
 }
 
-VirtualEdge_Hrot::VirtualEdge_Hrot(dof_type order, dof_type num = 0) {
+VirtualEdge_Hrot::VirtualEdge_Hrot(dof_type order, dof_type num) {
 	method_order = order;
 	method_num = num;
 }
@@ -54,7 +54,7 @@ void VirtualEdge_Hrot::test_calc_points(dof_type dof_i) {
 			for(int i = 0; i < loc_dof.size(); i++) {
 				double q = solutions[dof_i][loc_dof[i]] ;
 				double tau = sect.get_vector_basis_dof_tau(i)(x, y, z);
-				vec3d v = right_parts[dof_i](x, y, z);//sect.get_vector_basis_dof(i)(x, y, z);
+				vec3d v = sect.get_vector_basis_dof(i)(x, y, z);//right_parts[dof_i](x, y, z);//
 				tp.val += q * tau; 
 
 				tp.vval = tp.vval + q * v;

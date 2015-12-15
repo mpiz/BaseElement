@@ -58,6 +58,9 @@ template<typename elementT> class BaseElement {
 	void set_virtual_solution(vector<double>& virt_sol);
 	void set_virtual_solution_to_elements();
 
+	void print_full_matrix(string file_name);
+	void print_right_part(dof_type dof_i, string file_name);
+
  protected:
 
 	  void add_port(int add_el1, int add_el2);
@@ -226,7 +229,7 @@ template<typename elementT> int BaseElement<elementT>::find_pos(int i, int j) {
 		swap(i, j);
 
 	int k_s = gi[i], k_e = gi[i+1];
-	int cur;
+	int cur = -1;
 	bool find = false;
 	for(int k = k_s; k < k_e && !find; k++){
 		if(gj[k] == j){
@@ -365,27 +368,72 @@ template<typename elementT> void BaseElement<elementT>::solve_SLAE() {
 	}
 }
 
+template<typename elementT> void BaseElement<elementT>::print_full_matrix(string file_name) {
+
+	ofstream outp(file_name.c_str());
+
+	for(int i = 0; i < local_dof_n; i++) {
+		for(int j = 0; j < local_dof_n; j++) {
+			double val;
+			int k = find_pos(i, j);
+			if( k == -1)
+				val = 0;
+			else
+				val = gg[k];
+
+			outp << val;
+			if (j != local_dof_n-1)
+				outp << "\t";
+
+		}
+		outp << endl;
+	}
+
+	outp.close();
+
+}
+
+template<typename elementT> void BaseElement<elementT>::print_right_part(dof_type dof_i, string file_name) {
+
+	ofstream outp(file_name.c_str());
+
+	for(int i = 0; i < local_dof_n; i++) {
+		outp << rp[dof_i][i] << endl;
+	}
+
+	outp.close();
+
+}
+
 template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element_dofs_edge(vector<node>& el_nodes, int dof_per_element) {
 	vector<dof_type> el_dofs;
 	auto el_nodes_n = el_nodes.size();
+
+	set<dof_type> tmp_dofs; // Извращение нужно для отрезков, т.к. у них на 2 узла одно ребро, у треугольников и тетраэдров с этим всё ок
+
 	for(size_t node_i = 0; node_i < el_nodes_n; node_i++) {
 		size_t next_node = (node_i + 1) % el_nodes_n;
-		int n1 = min(el_nodes[node_i].number, el_nodes[node_next].number);
-		int n2 = min(el_nodes[node_i].number, el_nodes[node_next].number);
+
+		int n1 = std::min(el_nodes[node_i].number, el_nodes[next_node].number);
+		int n2 = std::max(el_nodes[node_i].number, el_nodes[next_node].number);
 		for(int k = 0; k < dof_per_element; k++) {
-			auto tup = make_tuple<int, int, int>(n1, n2, k);
+			auto tup = make_tuple(n1, n2, k);
 			auto map_res = edge_type_dofs.find(tup);
 			dof_type ins_dof;
 			if (map_res != edge_type_dofs.end()) {
-				ins_dof = map_res.second;
+				ins_dof = map_res->second;
 			}
 			else {
 				ins_dof = local_dof_counter;
 				local_dof_counter++;
+				local_dof_n = local_dof_counter;
 				edge_type_dofs[tup] = ins_dof;
 			}
 
-			el_dofs.push_back(ins_dof);
+			if(tmp_dofs.find(ins_dof) == tmp_dofs.end()) {
+				el_dofs.push_back(ins_dof);
+				tmp_dofs.insert(ins_dof);
+			}
 
 		}
 	}
@@ -400,6 +448,7 @@ template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element
 		el_dofs.push_back(node_it.number);
 	}
 
+	return el_dofs;
 }
 
 template<typename elementT> void BaseElement<elementT>::input_mesh(string file_name, int valide_code) {

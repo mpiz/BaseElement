@@ -86,7 +86,11 @@ void VirtualFace_Hrot::calculate() {
 }
 
 void VirtualFace_Hrot::test_calc_points(dof_type dof_i) {
+	bound_edge.print_full_matrix("test_matrix.txt");
+	bound_edge.print_right_part(dof_i, "test_rp.txt");
 	bound_edge.test_calc_points(dof_i);
+
+
 }
 
 VirtualFace_Hrot::~VirtualFace_Hrot() {
