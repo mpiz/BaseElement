@@ -9,7 +9,11 @@ void VirtualFace_Hrot::input_mesh(string file_name) {
 	BaseElement::input_mesh(file_name, 203);
 }
 
-VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, const vector<dof_type>& dofs_s, size_t order, dof_type num) {
+void VirtualFace_Hrot::input_bound(string file_name) {
+	bound_edge.input_mesh(file_name);
+}
+
+VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, size_t order, dof_type num) {
 
 	nodes = nodes_s;
 	nodes_n = nodes.size();
@@ -48,7 +52,7 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, const vector<dof
 	dofs_n = 0;
 
 	//—формируем рЄбра
-	for (size_t node_i = 0; node_i < nodes_n; node_i) {
+	for (size_t node_i = 0; node_i < nodes_n; node_i++) {
 		size_t node_next = node_i%nodes_n;
 		sector_nodes[0] = nodes[node_i];
 		sector_nodes[1] = nodes[node_next];
@@ -75,6 +79,8 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, const vector<dof
 
 void VirtualFace_Hrot::calculate() {
 
+	bound_edge.set_right_parts(bound_functions);
+	bound_edge.calculate();
 
 }
 

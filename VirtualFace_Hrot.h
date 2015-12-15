@@ -7,10 +7,11 @@
 class VirtualFace_Hrot : public BaseElement<trelement> {
 public:
 	VirtualFace_Hrot();
-	VirtualFace_Hrot(const vector<node>& nodes_s, const vector<dof_type>& dofs_s, dof_type order, dof_type num = 0);
+	VirtualFace_Hrot(const vector<node>& nodes_s, dof_type order, dof_type num = 0);
 
 	void calculate();
 	void input_mesh(string file_name);
+	void input_bound(string file_name);
 
 
 	~VirtualFace_Hrot();

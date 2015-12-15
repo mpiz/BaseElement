@@ -37,6 +37,8 @@ template<typename elementT> class BaseElement {
 	void generate_port();
 	template<typename func_t> void generate_matrix_with_out_bound(vector<func_t> equation_right_part);
 
+	void solve_SLAE();
+
 	void get_solutions(vector<double*>& solutions_g);
 	void get_local_glob(map<dof_type, dof_type>& loc_to_glob_g);
 	void get_glob_local(map<dof_type, dof_type>& glob_to_loc_g);
@@ -351,6 +353,14 @@ template<typename elementT> template<typename func_t> void BaseElement<elementT>
 
 
 }
+
+template<typename elementT> template<typename func_t> void BaseElement<elementT>::solve_SLAE() {
+	for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
+			solver.init(&gi.front(), &gj.front(), &di.front(), &gg.front(), local_dof_n);
+			solver.solve(rp[basis_i], solutions[basis_i]);
+	}
+}
+
 
 template<typename elementT> void BaseElement<elementT>::input_mesh(string file_name, int valide_code) {
 	ifstream inp_file(file_name.c_str());
