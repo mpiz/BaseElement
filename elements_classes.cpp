@@ -88,7 +88,7 @@ void sector::init_coords() {
 
 	gauss_points_global[0] = get_point((-gauss_coeff + 1) / 2.0);
 	gauss_points_global[1] = get_point(0.5);
-	gauss_points_global[2] = get_point((-gauss_coeff + 1) / 2.0);;
+	gauss_points_global[2] = get_point((-gauss_coeff + 1) / 2.0);
 
 	gauss_weights[0] = 5.0 / 9.0;
 	gauss_weights[1] = 8.0 / 9.0;
@@ -103,6 +103,9 @@ void sector::init_coords() {
 		// Получим нормалый вектор в глобальных координатах
 		normal_in_plane = vec3d(sector_plane.to_local_cord(local_normal_start), sector_plane.to_local_cord(local_normal_end));
 		normal_in_plane = normal_in_plane / normal_in_plane.norm();
+	}
+	else {
+		normal_in_plane = vec3d(0, 0, 0);
 	}
 }
 

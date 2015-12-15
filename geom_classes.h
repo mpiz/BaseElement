@@ -12,7 +12,7 @@ using namespace std;
 class node {
  public:
 	 node();
-	 node(double s_x, double s_y, double s_z);
+	 node(double s_x, double s_y, double s_z, int num = 0);
 	 node (double s_n[3]);
 	 double& operator [] (int i);
 	 node& operator = (const node pr);

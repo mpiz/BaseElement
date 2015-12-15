@@ -35,9 +35,9 @@ node::node(){
 	number = 0;
 }
 
-node::node(double sx, double sy, double sz){
+node::node(double sx, double sy, double sz, int num){
 	x = sx; y = sy; z = sz;
-	number = 0;
+	number = num;
 }
 
 double& node::operator [] (int i){
