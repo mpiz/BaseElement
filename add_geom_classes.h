@@ -20,12 +20,13 @@ class plane {
 	static bool is_on_line(array<node, 3>& points);
 
 	matrix(3) get_matrix() const;
+	array<point,3> get_tr_point();
  private:
 
 	 void init_cords(); //построение локальных координат
 	 array<node, 3> plane_points; // Три точки, определяющие плоскость
 
-	point trpoint[3]; //локальные координаты точек треугольника
+	array<point,3> trpoint; //локальные координаты точек треугольника
 	matrix(3) transition_matrix; //матрица перехода в локальные координаты
 
 	array<vec3d, 4> tau;

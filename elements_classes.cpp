@@ -329,6 +329,7 @@ void trelement::set_ph_area(int sph_area) {
 
 void trelement::init_cords() {
 	tr_plane = plane(node_array);
+	trpoint = tr_plane.get_tr_point();
 	generate_L_cords();
 
 	//Ќахождене точек интегрировани€ по √ауссу, в локальной системе координат
@@ -359,6 +360,7 @@ void trelement::init_cords() {
 	scalar_basis.resize(dofs_number);
 	scalar_basis_grad.resize(dofs_number);
 
+	vector_basis.reserve(dofs_number);
 	for(int i = 0; i < dofs_number; i++) {
 		vector_basis.push_back(get_vector_basis_for_dof(dofs[i].order, dofs[i].num, dofs[i].geom[0], dofs[i].geom[1]));
 	}
@@ -554,7 +556,7 @@ vec3d trelement::grad_lambda(int i) {
 	if(order == 1 && num == 0) {
 		res = [&, i1, i2](double x, double y, double z)->vec3d {
 			point pn(x, y, z);
-			return lambda(i1, pn) * grad_lambda(i2) - lambda(i2, pn) * grad_lambda(i1);
+			return this->lambda(i1, pn) * this->grad_lambda(i2) - this->lambda(i2, pn) * this->grad_lambda(i1);
 		};
 	}
 	else if(order == 1 && num == 1) {
@@ -563,6 +565,8 @@ vec3d trelement::grad_lambda(int i) {
 			return lambda(i1, pn) * grad_lambda(i2) + lambda(i2, pn) * grad_lambda(i1);
 		};
 	}
+	else
+		throw;
 	return res;
 }
 

@@ -197,7 +197,7 @@ class trelement : public simple_element {
 
 
 	  int ph_area; //физическая область
-	  point trpoint[3]; //локальные координаты точек треугольника
+	  array<point,3> trpoint; //локальные координаты точек треугольника
 	  vector<point> gauss_points; //точки для интегрирования по Гауссу (в локальной системе координат)
 	  double jacobian; //якобиан для вычиления интеграла
 
