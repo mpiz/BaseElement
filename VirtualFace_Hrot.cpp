@@ -61,7 +61,11 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, size_t order, do
 
 		auto sec_dof_n = sector::get_dof_n(order, num);
 		for(size_t dof_i = 0; dof_i < sec_dof_n; dof_i++) {
-			dof_type add_dof = counters::get_next_dof();
+
+			dof_info add_dof(counters::get_next_dof(), order, num, dof_i);
+			add_dof.add_geom(nodes[node_i].number);
+			add_dof.add_geom(nodes[node_next].number);
+
 			dofs.push_back(add_dof);
 			add_sector->add_dof(add_dof);
 
@@ -83,6 +87,31 @@ void VirtualFace_Hrot::calculate() {
 	bound_edge.set_right_parts(bound_functions);
 	bound_edge.calculate();
 
+	auto firts_bound_geom = bound_edge.get_bound_funcs();
+	for(auto& fb_g : firts_bound_geom) {
+		first_bound.push_back(edge_type_dofs[fb_g].number);
+	}
+
+	generate_port();
+	generate_matrix_with_out_bound(right_part_functions);
+
+	/*generate_matrix_first_bound([&](dof_type basis_i, dof_type cur_dof)->double {
+		return get_bound_value(basis_i, cur_dof);
+	});*/
+	
+	solve_SLAE();
+
+}
+
+dof_type VirtualFace_Hrot::get_bound_dof(dof_type face_dof) {
+	auto tup = edge_type_dofs_revers[face_dof];
+	auto res = bound_edge.get_dof_num(tup);
+	return res;
+}
+
+double VirtualFace_Hrot::get_bound_value(dof_type basis_i, dof_type cur_dof) {
+	auto bound_dof = get_bound_dof(cur_dof);
+	return bound_solutions[basis_i][bound_dof];
 }
 
 void VirtualFace_Hrot::test_calc_points(dof_type dof_i) {

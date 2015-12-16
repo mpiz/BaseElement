@@ -1,7 +1,15 @@
 #include "elements_classes.h"
 
-vector<dof_type> simple_element::get_dofs() {
+vector<dof_info> simple_element::get_dofs() {
 	return dofs;
+}
+
+vector<dof_type> simple_element::get_dofs_num() {
+	vector<dof_type> res;
+	for(auto& dof_it : dofs) {
+		res.push_back(dof_it.number);
+	}
+	return res;
 }
 
 vfunc3d simple_element::get_vector_basis_dof(size_t dof_i) {
@@ -12,7 +20,7 @@ vfunc3d simple_element::get_vector_basis(dof_type order, dof_type num) {
 	return nullptr;
 }
 
-void simple_element::add_dof(dof_type d) {
+void simple_element::add_dof(dof_info d) {
 	dofs.push_back(d);
 	dofs_number = dofs.size();
 }
@@ -75,7 +83,7 @@ sector::sector(const vector<node>& nodes_s, const plane& plane_s) {
 	init_coords();
 }
 
-sector::sector(vector<node> nodes_s, vector<dof_type> s_dofs) {
+sector::sector(vector<node> nodes_s, vector<dof_info> s_dofs) {
 	dofs = s_dofs;
 	dofs_number = dofs.size();
 	nodes = nodes_s;
@@ -288,7 +296,7 @@ trelement::trelement() {
 	gauss_points.resize(gauss_points_tr);
 }
 
-trelement::trelement(vector<node> nodes_s, vector<dof_type> s_dofs) {
+trelement::trelement(vector<node> nodes_s, vector<dof_info> s_dofs) {
 	prepare_gauss(gauss_points_tr);
 	gauss_points.resize(gauss_points_tr);
 
@@ -350,6 +358,18 @@ void trelement::init_cords() {
 	
 	scalar_basis.resize(dofs_number);
 	scalar_basis_grad.resize(dofs_number);
+
+	vector_basis.push_back([&](double x, double y, double z)->vec3d {
+			point p(x, y,z);
+			return  lambda(1, p) * grad_lambda(0) - lambda(0, p) * grad_lambda(1);
+		}
+	);
+
+	vector_basis.push_back([&](double x, double y, double z)->vec3d {
+			point p(x, y,z);
+			return  lambda(1, p) * grad_lambda(0) + lambda(0, p) * grad_lambda(1);
+		}
+	);
 
 }
 
@@ -427,6 +447,17 @@ dyn_matrix trelement::get_local_matrix(double mu) {
 
 	M.resize(dofs_number);
 
+/*	for(int i = 0; i < dofs_number; i++) {
+		M[i].resize(dofs_number);
+		for(int j = 0; j <= i; j++) {
+			M[i][j] = integrate([&](double x, double y, double z)->double {
+				return mu * (this->*scalar_basis_grad[i])(x,y,z) * (this->*scalar_basis_grad[j])(x,y,z);
+			});
+			M[j][i] = M[i][j];
+		}
+	}*/
+
+
 	for(int i = 0; i < dofs_number; i++) {
 		M[i].resize(dofs_number);
 		for(int j = 0; j <= i; j++) {
@@ -448,6 +479,18 @@ vector<double> trelement::get_local_right_part(func3d rp_func) {
 	for(int i = 0; i < dofs_number; i++)
 		b[i] = integrate([&](double x, double y, double z)->double {
 			return  rp_func(x,y,z) * (this->*scalar_basis[i])(x,y,z);
+	});
+
+	return b;
+}
+
+vector<double> trelement::get_local_right_part(vfunc3d rp_func) {
+	vector<double> b;
+	b.resize(dofs_number);
+
+	for(int i = 0; i < dofs_number; i++)
+		b[i] = integrate([&](double x, double y, double z)->double {
+			return  rp_func(x,y,z) * vector_basis[i](x,y,z);
 	});
 
 	return b;
@@ -522,7 +565,7 @@ tetelement::tetelement() {
 	prepare_gauss(gauss_points_tet);
 }
 
-tetelement::tetelement(vector<node> nodes_s, vector<dof_type> s_dofs) {
+tetelement::tetelement(vector<node> nodes_s, vector<dof_info> s_dofs) {
 	prepare_gauss(gauss_points_tet);
 
 	node_array[0] = nodes_s[0];

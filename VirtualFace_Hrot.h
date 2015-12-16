@@ -34,6 +34,12 @@ private:
 
 	VirtualEdge_Hrot bound_edge;
 
+	double get_bound_value(dof_type basis_i, dof_type cur_dof);
+
+	dof_type get_bound_dof(dof_type face_dof);
+
+	vector<double*> bound_solutions;
+
 
 };
 

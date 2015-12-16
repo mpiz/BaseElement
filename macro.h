@@ -5,6 +5,7 @@
 #include <vector>
 #include <omp.h>
 #include <functional>
+#include "dof_info.h"
 
 using namespace std;
 // Для быстрого отключения вывода отладочной информации
@@ -33,7 +34,5 @@ using namespace std;
 
 
 typedef vector<vector<double>> dyn_matrix;  // динамическая матрица
-
-typedef unsigned int dof_type; // Степень свободы
 
 #define geom_err 1e-6

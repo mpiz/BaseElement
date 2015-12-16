@@ -10,12 +10,15 @@ public:
 	void calculate();
 	void set_right_parts(const vector<vfunc3d>& right_parts_s);
 
-	vector<dof_type> calc_element_dofs(vector<node>& el_nodes);
+	vector<dof_info> calc_element_dofs(vector<node>& el_nodes);
 
 	~VirtualEdge_Hrot();
 
 
 	void test_calc_points(dof_type dof_i);
+
+	dof_type get_dof_num(tuple<int, int, int> tup);
+	vector<tuple<int, int, int>> get_bound_funcs();
 
 private:
 	vector<vfunc3d> right_parts;

@@ -24,7 +24,7 @@ void VirtualEdge_Hrot::set_right_parts(const vector<vfunc3d>& right_parts_s) {
 	dofs_n = right_parts.size();
 }
 
-vector<dof_type> VirtualEdge_Hrot::calc_element_dofs(vector<node>& el_nodes) {
+vector<dof_info> VirtualEdge_Hrot::calc_element_dofs(vector<node>& el_nodes) {
 	return calc_element_dofs_edge(el_nodes, sector::get_dof_n(method_order, method_num));
 }
 
@@ -52,7 +52,7 @@ void VirtualEdge_Hrot::test_calc_points(dof_type dof_i) {
 			tp.val = 0;
 			tp.vval = vec3d(0, 0, 0);
 			for(int i = 0; i < loc_dof.size(); i++) {
-				double q = solutions[dof_i][loc_dof[i]] ;
+				double q = solutions[dof_i][loc_dof[i].number] ;
 				double tau = sect.get_vector_basis_dof_tau(i)(x, y, z);
 				vec3d v = sect.get_vector_basis_dof(i)(x, y, z);//right_parts[dof_i](x, y, z);//
 				tp.val += q * tau; 
@@ -70,6 +70,19 @@ void VirtualEdge_Hrot::test_calc_points(dof_type dof_i) {
 		outp << t.x << " " << t.y << " " << t.vval.x << " " << t.vval.y << endl;
 	}
 	outp.close();
+
+}
+
+dof_type VirtualEdge_Hrot::get_dof_num(tuple<int, int, int> tup) {
+	return edge_type_dofs[tup].number;
+}
+vector<tuple<int, int, int>> VirtualEdge_Hrot::get_bound_funcs() {
+	vector<tuple<int, int, int>> res;
+	for(auto& edge_dof : edge_type_dofs) {
+		res.push_back(edge_dof.first);
+	}
+
+	return res;
 
 }
 

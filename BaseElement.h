@@ -6,12 +6,6 @@
 #include <set>
 #include <iostream>
 
-namespace counters {
-	static dof_type get_next_dof() {
-		static dof_type dof_count = 0;
-		return dof_count++;
-	}
-};
 
 
 template<typename elementT> class BaseElement {
@@ -24,8 +18,8 @@ template<typename elementT> class BaseElement {
 
 	virtual void calculate() = 0;
 	virtual void input_mesh(string file_name) = 0;
-	virtual vector<dof_type> calc_element_dofs(vector<node>& el_nodes); // Функци получения степеней свободы элемента по его узлам
-	vector<dof_type> calc_element_dofs_edge(vector<node>& el_nodes, int dof_per_element); // Функци получения степеней свободы для рёбер
+	virtual vector<dof_info> calc_element_dofs(vector<node>& el_nodes); // Функци получения степеней свободы элемента по его узлам
+	vector<dof_info> calc_element_dofs_edge(vector<node>& el_nodes, int dof_per_element); // Функци получения степеней свободы для рёбер
 
 	virtual double vales(dof_type glob_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
 	virtual double scalar_basis_v(dof_type loc_dof_n, node pn);	// По глобальному номеру базисной функции и точке вычислем значение
@@ -38,6 +32,9 @@ template<typename elementT> class BaseElement {
 
 	void generate_port();
 	template<typename func_t> void generate_matrix_with_out_bound(vector<func_t> equation_right_part);
+	void generate_matrix_first_bound(function<double(dof_type, dof_type)> bound_right_part); // Генерировать краевые условия, bound_right_part вектор вычисления краевых условий, 
+																							 // Параметр 1 - номер функции, для которой считаем краевое
+																							 // Параметр 2 - номер степени свободы, для которой считем краевое
 
 	void solve_SLAE();
 
@@ -85,10 +82,10 @@ template<typename elementT> class BaseElement {
 	 int local_dof_n;
 	 int local_nodes_n;
 
-	 vector<dof_type> local_dofs;	// Степени свободы внутри элемента
+	 vector<dof_info> local_dofs;	// Степени свободы внутри элемента
 	 vector<node> local_nodes;	// Узлы внутри элемента
 
-	 vector<dof_type> dofs;		// Степени свободы для всей виртуальной сетки
+	 vector<dof_info> dofs;		// Степени свободы для всей виртуальной сетки
 	 vector<node> nodes;	// Узлы для всей виртуальной сетки
 
 
@@ -104,7 +101,8 @@ template<typename elementT> class BaseElement {
 
 	 size_t	element_order;
 
-	 map<tuple<int, int, int>, dof_type> edge_type_dofs; // Edge-степени свободы для векторных методов первые два int - номера узлов, второй - номер функции
+	 map<tuple<int, int, int>, dof_info> edge_type_dofs; // Edge-степени свободы для векторных методов первые два int - номера узлов, второй - номер функции
+	 map<dof_info, tuple<int, int, int>> edge_type_dofs_revers; // Реверсированный массив edge_type_dofs
 	 dof_type local_dof_counter;
 };
 
@@ -275,7 +273,7 @@ template<typename elementT> void BaseElement<elementT>::generate_port() {
 
 	//Собираем портрет
 	for(int el_i = 0; el_i < elements_n; el_i++) {
-		vector<dof_type> loc_dof = elements[el_i].get_dofs();
+		vector<dof_type> loc_dof = elements[el_i].get_dofs_num();
 		int loc_dof_n = loc_dof.size();
 		
 		for(int i = 0; i < loc_dof_n; i++)
@@ -341,21 +339,61 @@ template<typename elementT> template<typename func_t> void BaseElement<elementT>
 		for(int k = 0; k < dofs_n; k++) {
 			auto b_loc = elements[el_i].get_local_right_part(equation_right_part[k]);
 			for(int i = 0; i < el_dof_n; i++)
-				rp[k][el_dof[i]] += b_loc[i];
+				rp[k][el_dof[i].number] += b_loc[i];
 		}
 		
 
 		for(int i = 0; i < el_dof_n; i++) {
-			int i_dof = el_dof[i];
+			int i_dof = el_dof[i].number;
 			for(int j = 0; j < i; j++) {
-				int pos = find_pos(i_dof,el_dof[j]);
+				int pos = find_pos(i_dof,el_dof[j].number);
 				gg[pos] += A_loc[i][j];
 			}
 			di[i_dof] += A_loc[i][i];
 
 		}
 
-		// Базис первого порядка - правая часть нулевая
+	}
+
+
+}
+
+template<typename elementT> void BaseElement<elementT>::generate_matrix_first_bound(function<double(dof_type, dof_type)> bound_right_part) {
+	vector<double> vals;
+	vals.resize(dofs_n);
+
+	int fb_size = first_bound.size();
+
+	for(int k = 0; k < fb_size; k++)	{
+		int cur_row = first_bound[k];
+		auto cur_node = local_nodes[cur_row];
+
+		for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
+
+			vals[basis_i] = bound_right_part(basis_i, cur_row);
+			rp[basis_i][cur_row] = vals[basis_i];
+		}
+
+
+		di[cur_row] = 1;
+
+		int i_s = gi[cur_row], i_e = gi[cur_row+1];
+		for(int i = i_s; i < i_e; i++){
+			for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
+				rp[basis_i][gj[i]] -= gg[i]*vals[basis_i];
+			}
+			gg[i] = 0;
+		}
+		for(int p = cur_row + 1; p < local_dof_n; p++){
+			int i_s = gi[p], i_e = gi[p+1];
+			for(int i = i_s; i < i_e; i++){
+				if(gj[i] == cur_row){
+					for(int basis_i = 0; basis_i < dofs_n; basis_i++)
+						rp[basis_i][p] -= gg[i]*vals[basis_i];
+					gg[i] = 0;
+				}
+			}
+		}
 	}
 
 
@@ -363,7 +401,7 @@ template<typename elementT> template<typename func_t> void BaseElement<elementT>
 
 template<typename elementT> void BaseElement<elementT>::solve_SLAE() {
 	for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
-			solver.init(&gi.front(), &gj.front(), &di.front(), &gg.front(), local_dof_n);
+			solver.init(gi.data(), gj.data(), di.data(), gg.data(), local_dof_n);
 			solver.solve(rp[basis_i], solutions[basis_i]);
 	}
 }
@@ -375,16 +413,19 @@ template<typename elementT> void BaseElement<elementT>::print_full_matrix(string
 	for(int i = 0; i < local_dof_n; i++) {
 		for(int j = 0; j < local_dof_n; j++) {
 			double val;
-			int k = find_pos(i, j);
-			if( k == -1)
-				val = 0;
-			else
-				val = gg[k];
+			if (i == j) 
+				val = di[i];
+			else {
+				int k = find_pos(i, j);
+				if( k == -1)
+					val = 0;
+				else
+					val = gg[k];
+			}
 
-			outp << val;
-			if (j != local_dof_n-1)
-				outp << "\t";
-
+				outp << val;
+				if (j != local_dof_n-1)
+					outp << "\t";
 		}
 		outp << endl;
 	}
@@ -405,8 +446,8 @@ template<typename elementT> void BaseElement<elementT>::print_right_part(dof_typ
 
 }
 
-template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element_dofs_edge(vector<node>& el_nodes, int dof_per_element) {
-	vector<dof_type> el_dofs;
+template<typename elementT> vector<dof_info> BaseElement<elementT>::calc_element_dofs_edge(vector<node>& el_nodes, int dof_per_element) {
+	vector<dof_info> el_dofs;
 	auto el_nodes_n = el_nodes.size();
 
 	set<dof_type> tmp_dofs; // Извращение нужно для отрезков, т.к. у них на 2 узла одно ребро, у треугольников и тетраэдров с этим всё ок
@@ -419,20 +460,23 @@ template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element
 		for(int k = 0; k < dof_per_element; k++) {
 			auto tup = make_tuple(n1, n2, k);
 			auto map_res = edge_type_dofs.find(tup);
-			dof_type ins_dof;
+			dof_info ins_dof;
 			if (map_res != edge_type_dofs.end()) {
 				ins_dof = map_res->second;
 			}
 			else {
-				ins_dof = local_dof_counter;
+				ins_dof = dof_info(local_dof_counter, 1, k);
+				ins_dof.add_geom(n1);
+				ins_dof.add_geom(n2);
 				local_dof_counter++;
 				local_dof_n = local_dof_counter;
 				edge_type_dofs[tup] = ins_dof;
+				edge_type_dofs_revers[ins_dof] = tup;
 			}
 
-			if(tmp_dofs.find(ins_dof) == tmp_dofs.end()) {
-				el_dofs.push_back(ins_dof);
-				tmp_dofs.insert(ins_dof);
+			if(tmp_dofs.find(ins_dof.number) == tmp_dofs.end()) {
+				el_dofs.push_back(ins_dof.number);
+				tmp_dofs.insert(ins_dof.number);
 			}
 
 		}
@@ -441,11 +485,13 @@ template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element
 	return el_dofs;
 }
 
-template<typename elementT> vector<dof_type> BaseElement<elementT>::calc_element_dofs(vector<node>& el_nodes) {
+template<typename elementT> vector<dof_info> BaseElement<elementT>::calc_element_dofs(vector<node>& el_nodes) {
 	// В простейшем случае степени свободы - номера узлов
-	vector<dof_type> el_dofs;
+	vector<dof_info> el_dofs;
 	for(auto& node_it : el_nodes) {
-		el_dofs.push_back(node_it.number);
+		dof_info d(node_it.number);
+		d.add_geom(node_it.number);
+		el_dofs.push_back(d);
 	}
 
 	return el_dofs;
@@ -466,7 +512,7 @@ template<typename elementT> void BaseElement<elementT>::input_mesh(string file_n
 
 	local_dof_n = local_nodes_n;
 
-	vector<dof_type> tr_dofs;
+	vector<dof_info> tr_dofs;
 	vector<node> tr_node;
 
 	// Вводим узлы
@@ -488,7 +534,6 @@ template<typename elementT> void BaseElement<elementT>::input_mesh(string file_n
 	//Вводим элементы
 	for(int i = 0; i < total_element_n; i++) {
 		int num, el_code, tr_p;
-		int tmp_int;
 
 		tr_dofs.clear();
 		tr_node.clear();

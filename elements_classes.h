@@ -40,14 +40,15 @@ public:
 	virtual double integrate(func3d func);	// Вычисление интеграла по элементу
 
 
-	void add_dof(dof_type d);
+	void add_dof(dof_info d);
 	void prepare_gauss(int gn);
-	vector<dof_type> get_dofs();
+	vector<dof_info> get_dofs();
+	vector<dof_type> get_dofs_num();
 
 
 protected:
 	
-	vector<dof_type> dofs;
+	vector<dof_info> dofs;
 	unsigned int dofs_number;
 
 
@@ -64,7 +65,7 @@ public:
 
 	sector();
 	sector(const vector<node>& nodes_s, const plane& plane_s);
-	sector(vector<node> nodes_s, vector<dof_type> s_dofs);
+	sector(vector<node> nodes_s, vector<dof_info> s_dofs);
 
 	int& operator [] (int i); //получить i-ую степень свободы
 
@@ -116,7 +117,7 @@ private:
 class trelement : public simple_element {
  public:
 	 trelement();
-	 trelement(vector<node> nodes_s, vector<dof_type> s_dofs);
+	 trelement(vector<node> nodes_s, vector<dof_info> s_dofs);
 
 	 int& operator [] (int i); //получить i-ую степень свободы
 
@@ -127,6 +128,7 @@ class trelement : public simple_element {
 
 	 dyn_matrix get_local_matrix(double mu);
 	 vector<double> get_local_right_part(func3d rp_func);
+	 vector<double> get_local_right_part(vfunc3d rp_func);
 
 	 double scalar_basis_v(int i, double x, double y, double z);
 
@@ -204,13 +206,15 @@ class trelement : public simple_element {
 	  vec3d grad_basis_1(double x, double y, double z);
 	  vec3d grad_basis_2(double x, double y, double z);
 	  vec3d grad_basis_3(double x, double y, double z);
+
+	  vector<vfunc3d> vector_basis;
 };
 
 
 class tetelement : public simple_element {
  public:
 	 tetelement();
-	 tetelement(vector<node> nodes_s, vector<dof_type> s_dofs);
+	 tetelement(vector<node> nodes_s, vector<dof_info> s_dofs);
 
 	 int& operator [] (int i); //получить i-ое локальное ребро
 

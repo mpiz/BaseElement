@@ -15,14 +15,14 @@ int main() {
 
 	nodes.push_back(node(0.8, 0, 0, 7));*/
 
-	VirtualFace_Hrot face(nodes, 1, 1);
+	VirtualFace_Hrot face(nodes, 1, 2);
 
 	face.input_mesh("Face.dat");
 	face.input_bound("FaceBound.dat");
 
 	face.calculate();
 
-	face.test_calc_points(0);
+	face.test_calc_points(1);
 
 	return 0;
 }
