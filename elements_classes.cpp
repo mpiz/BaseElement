@@ -198,10 +198,10 @@ vector<double> sector::get_local_right_part(vfunc3d rp_func) {
 }
 
 dof_type sector::get_dof_n(dof_type order, dof_type num) {
-	if (order == 1 && num == 1) {
+	if (order == 1 && num == 0) {
 		return 1;
 	}
-	else if (order == 1 && num == 2) {
+	else if (order == 1 && num == 1) {
 		return 2;
 	}
 }
@@ -210,9 +210,9 @@ dof_type sector::get_dof_n(dof_type order, dof_type num) {
 vfunc3d sector::get_vector_basis_dof(size_t dof_i) {
 	switch(dof_i) {
 	case 0: 
-		return get_vector_basis(1, 1);
+		return get_vector_basis(1, 0);
 	case 1 :
-		return get_vector_basis(1, 2);
+		return get_vector_basis(1, 1);
 	}
 
 	throw "sector::get_vector_basis - undefined function";
@@ -226,11 +226,11 @@ func3d sector::get_vector_basis_dof_tau(size_t dof_i) {
 }
 
 vfunc3d sector::get_vector_basis(dof_type order, dof_type num) {
-	if (order == 1 && num == 1)
+	if (order == 1 && num == 0)
 		return [&](double x, double y, double z)->vec3d {
 			return vbasis_1_1(x, y, z);
 		};
-	else if (order == 1 && num == 2)
+	else if (order == 1 && num == 1)
 		return [&](double x, double y, double z)->vec3d {
 			return vbasis_1_2(x, y, z);
 		};
@@ -252,11 +252,11 @@ vfunc3d sector::get_vector_right_part_dof(size_t dof_i) {
 vfunc3d sector::get_vector_right_part(dof_type order, dof_type num) {
 	if (order == 1 && num == 1)
 		return [&](double x, double y, double z)->vec3d {
-			return k_sq * vbasis_1_1(x, y, z);
+			return /*k_sq **/ vbasis_1_1(x, y, z);
 		};
 	else if (order == 1 && num == 2)
 		return [&](double x, double y, double z)->vec3d {
-			return k_sq * vbasis_1_2(x, y, z);
+			return/* k_sq **/ vbasis_1_2(x, y, z);
 		};
 
 	throw "sector::get_vector_right_part - undefined function";
@@ -341,7 +341,7 @@ void trelement::init_cords() {
 
 	gauss_points[0] = point(h1 / 2, 0, 0);
 	gauss_points[1] = point(trpoint[2][0] / 2.0, trpoint[2][1] / 2.0, trpoint[2][2] / 2.0);
-	gauss_points[2] = (transition_matrix * (0.5*g1 + 0.5*g2)).to_point();
+	gauss_points[2] = (tr_plane.get_matrix() * (0.5*g1 + 0.5*g2)).to_point();
 
 	gauss_weights[0] = gauss_weights[1] = gauss_weights[2] = 1.0 / 6.0;
 
@@ -359,17 +359,11 @@ void trelement::init_cords() {
 	scalar_basis.resize(dofs_number);
 	scalar_basis_grad.resize(dofs_number);
 
-	vector_basis.push_back([&](double x, double y, double z)->vec3d {
-			point p(x, y,z);
-			return  lambda(1, p) * grad_lambda(0) - lambda(0, p) * grad_lambda(1);
-		}
-	);
+	for(int i = 0; i < dofs_number; i++) {
+		vector_basis.push_back(get_vector_basis_for_dof(dofs[i].order, dofs[i].num, dofs[i].geom[0], dofs[i].geom[1]));
+	}
 
-	vector_basis.push_back([&](double x, double y, double z)->vec3d {
-			point p(x, y,z);
-			return  lambda(1, p) * grad_lambda(0) + lambda(0, p) * grad_lambda(1);
-		}
-	);
+	auto t1 = vector_basis[0](0.1, 0.1, 0);
 
 }
 
@@ -404,6 +398,10 @@ point trelement::to_global_cord(point p_loc) {
 vec3d trelement::to_global_cord(vec3d v_loc) {
 	return tr_plane.to_global_cord(v_loc);
 
+}
+
+vfunc3d trelement::get_vector_basis_dof(size_t dof_i) {
+	return vector_basis[dof_i];
 }
 
 double trelement::scalar_basis_v(int i, double x, double y, double z) {
@@ -461,8 +459,9 @@ dyn_matrix trelement::get_local_matrix(double mu) {
 	for(int i = 0; i < dofs_number; i++) {
 		M[i].resize(dofs_number);
 		for(int j = 0; j <= i; j++) {
+			vec3d t1 = vector_basis[i](0.1,0.1,0);
 			M[i][j] = integrate([&](double x, double y, double z)->double {
-				return mu * (this->*scalar_basis_grad[i])(x,y,z) * (this->*scalar_basis_grad[j])(x,y,z);
+				return mu * vector_basis[i](x,y,z) * vector_basis[j](x,y,z);
 			});
 			M[j][i] = M[i][j];
 		}
@@ -523,6 +522,16 @@ double trelement::vector_jump_L2(vfunc3d f1, vfunc3d f2) {
 	});
 }
 
+dof_type trelement::get_dof_n(dof_type order, dof_type num) {
+	if (order == 1 && num == 0) {
+		return 3;
+	}
+	else if (order == 1 && num == 1) {
+		return 6;
+	}
+}
+
+
 
 vec3d trelement::grad_lambda(int i) {
 	vec3d grad;
@@ -531,6 +540,30 @@ vec3d trelement::grad_lambda(int i) {
 	}
 
 	return to_global_cord(grad);
+}
+
+ vfunc3d trelement::get_vector_basis_for_dof(dof_type order, dof_type num, dof_type n1, dof_type n2) {
+	int i1, i2;
+	for(int i = 0; i < element_nodes; i++) {
+		if (i == n1)
+			i1 = i;
+		if (i == n2)
+			i2 = i;
+	}
+	vfunc3d res;
+	if(order == 1 && num == 0) {
+		res = [&, i1, i2](double x, double y, double z)->vec3d {
+			point pn(x, y, z);
+			return lambda(i1, pn) * grad_lambda(i2) - lambda(i2, pn) * grad_lambda(i1);
+		};
+	}
+	else if(order == 1 && num == 1) {
+		res = [&](double x, double y, double z)->vec3d {
+			point pn(x, y, z);
+			return lambda(i1, pn) * grad_lambda(i2) + lambda(i2, pn) * grad_lambda(i1);
+		};
+	}
+	return res;
 }
 
 // == Базисные функции ==

@@ -21,6 +21,11 @@ vec3d plane::get_tau(size_t i) const {
 	return tau[i];
 }
 
+matrix(3) plane::get_matrix() const{
+	return transition_matrix;
+}
+
+
 point plane::to_local_cord(point p_glob) {
 	point p_shift = p_glob;
 

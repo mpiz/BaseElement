@@ -14,8 +14,14 @@ public:
 	void input_mesh(string file_name);
 	void input_bound(string file_name);
 
-	void test_calc_points(dof_type dof_i);
+	vector<dof_info> calc_element_dofs(vector<node>& el_nodes);
 
+	vec3d vector_basis_val(dof_type basis_i, double x, double y, double z);
+	trelement* find_element(point pn);
+
+	
+	void test_calc_points(dof_type dof_i);
+	void test_func_info(dof_type dof_i);
 
 	~VirtualFace_Hrot();
 

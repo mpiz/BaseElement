@@ -146,6 +146,9 @@ class trelement : public simple_element {
 	 double L2_diff(func3d f, vector<double>& q_loc);
 
 	 double vector_jump_L2(vfunc3d f1, vfunc3d f2);
+	 vfunc3d get_vector_basis_dof(size_t dof_i);
+
+	 static dof_type get_dof_n(dof_type order, dof_type num);
 	 
  private:
 
@@ -208,6 +211,8 @@ class trelement : public simple_element {
 	  vec3d grad_basis_3(double x, double y, double z);
 
 	  vector<vfunc3d> vector_basis;
+
+	  vfunc3d get_vector_basis_for_dof(dof_type order, dof_type num, dof_type n1, dof_type n2);
 };
 
 

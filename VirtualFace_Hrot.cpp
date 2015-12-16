@@ -13,11 +13,16 @@ void VirtualFace_Hrot::input_bound(string file_name) {
 	bound_edge.input_mesh(file_name);
 }
 
+vector<dof_info> VirtualFace_Hrot::calc_element_dofs(vector<node>& el_nodes) {
+	return calc_element_dofs_edge(el_nodes, sector::get_dof_n(method_order, method_num));
+}
+
 VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, size_t order, dof_type num) {
 
 	nodes = nodes_s;
 	nodes_n = nodes.size();
-	element_order = order;
+	method_order = order;
+	method_num = num;
 
 	if (nodes_n < 3) {
 		throw "VirtualFace_Hrot::VirtualFace_Hrot - to construct a face atleast 3 points needed";
@@ -86,18 +91,21 @@ void VirtualFace_Hrot::calculate() {
 
 	bound_edge.set_right_parts(bound_functions);
 	bound_edge.calculate();
+	bound_edge.get_solutions(bound_solutions);
 
 	auto firts_bound_geom = bound_edge.get_bound_funcs();
 	for(auto& fb_g : firts_bound_geom) {
 		first_bound.push_back(edge_type_dofs[fb_g].number);
 	}
 
+	sort(first_bound.begin(), first_bound.end());
+
 	generate_port();
 	generate_matrix_with_out_bound(right_part_functions);
 
-	/*generate_matrix_first_bound([&](dof_type basis_i, dof_type cur_dof)->double {
+	generate_matrix_first_bound([&](dof_type basis_i, dof_type cur_dof)->double {
 		return get_bound_value(basis_i, cur_dof);
-	});*/
+	});
 	
 	solve_SLAE();
 
@@ -114,11 +122,59 @@ double VirtualFace_Hrot::get_bound_value(dof_type basis_i, dof_type cur_dof) {
 	return bound_solutions[basis_i][bound_dof];
 }
 
+
+vec3d VirtualFace_Hrot::vector_basis_val(dof_type basis_i, double x, double y, double z){
+	point pn(x, y, z);
+	auto el = find_element(pn);
+	if (el == nullptr)
+		return vec3d(0, 0, 0);
+
+	auto local_dofs = el->get_dofs();
+	auto local_dofs_n = local_dofs.size();
+
+	vec3d res(0, 0, 0);
+
+	for(int k = 0; k < local_dofs_n; k++) {
+		vec3d basis_val = el->get_vector_basis_dof(k)(x, y, z);
+		res = res + solutions[basis_i][local_dofs[k].number] * basis_val;
+	}
+	return res;
+}
+
+trelement* VirtualFace_Hrot::find_element(point pn) {
+	for(int el_i = 0; el_i < elements_n; el_i++) {
+		if (elements[el_i].in_element(pn.x, pn.y, pn.z))
+			return &elements[el_i];
+	}
+	return nullptr;
+}
+
 void VirtualFace_Hrot::test_calc_points(dof_type dof_i) {
 	bound_edge.print_full_matrix("test_matrix.txt");
 	bound_edge.print_right_part(dof_i, "test_rp.txt");
 	bound_edge.test_calc_points(dof_i);
 
+}
+
+void VirtualFace_Hrot::test_func_info(dof_type dof_i) {
+	ofstream outpfile("test_2.txt");
+
+	double y = 0;
+	double h = 0.1;
+
+	double* q = solutions[dof_i];
+	
+	while(y < 1) {
+		double x = 0;
+		while (x <= y) {
+			vec3d val = vector_basis_val(dof_i, x, y, 0);
+			outpfile << x << " " << y << " " << val.x << " " << val.y << endl; 
+			x += h;
+		}
+		y += h;
+	}
+
+	outpfile.close();
 
 }
 

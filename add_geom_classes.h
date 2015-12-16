@@ -19,6 +19,7 @@ class plane {
 
 	static bool is_on_line(array<node, 3>& points);
 
+	matrix(3) get_matrix() const;
  private:
 
 	 void init_cords(); //построение локальных координат

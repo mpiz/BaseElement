@@ -99,11 +99,11 @@ template<typename elementT> class BaseElement {
 
 	 CGM solver;
 
-	 size_t	element_order;
-
 	 map<tuple<int, int, int>, dof_info> edge_type_dofs; // Edge-степени свободы для векторных методов первые два int - номера узлов, второй - номер функции
 	 map<dof_info, tuple<int, int, int>> edge_type_dofs_revers; // Реверсированный массив edge_type_dofs
 	 dof_type local_dof_counter;
+
+	 dof_type method_order, method_num;
 };
 
 // ========================================================================
@@ -366,7 +366,6 @@ template<typename elementT> void BaseElement<elementT>::generate_matrix_first_bo
 
 	for(int k = 0; k < fb_size; k++)	{
 		int cur_row = first_bound[k];
-		auto cur_node = local_nodes[cur_row];
 
 		for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
 
@@ -469,13 +468,14 @@ template<typename elementT> vector<dof_info> BaseElement<elementT>::calc_element
 				ins_dof.add_geom(n1);
 				ins_dof.add_geom(n2);
 				local_dof_counter++;
+
 				local_dof_n = local_dof_counter;
 				edge_type_dofs[tup] = ins_dof;
 				edge_type_dofs_revers[ins_dof] = tup;
 			}
 
 			if(tmp_dofs.find(ins_dof.number) == tmp_dofs.end()) {
-				el_dofs.push_back(ins_dof.number);
+				el_dofs.push_back(ins_dof);
 				tmp_dofs.insert(ins_dof.number);
 			}
 

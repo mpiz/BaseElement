@@ -22,7 +22,5 @@ public:
 
 private:
 	vector<vfunc3d> right_parts;
-
-	dof_type method_order, method_num;
 };
 
