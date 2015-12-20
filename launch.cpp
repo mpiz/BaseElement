@@ -27,11 +27,10 @@ int main() {
 
 	face.calculate();
 
-	face.test_print_local_basis("basis");
 	face.test_calc_points(2);
-	//face.test_func_info(0);
-	//face.test_func_info(1);
-	face.test_func_info(2);
+	for(int i = 0; i < 8; i++)
+		face.test_func_info(i);
+
 
 	return 0;
 }

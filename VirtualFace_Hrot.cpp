@@ -183,29 +183,16 @@ void VirtualFace_Hrot::test_func_info(dof_type dof_i) {
 
 	double* q = solutions[dof_i];
 
-	array<vfunc3d, 3> real_bv = {
-		[&](double x, double y, double z)->vec3d {
-			return vec3d(1-y, x, 0);
-		},
-		[&](double x, double y, double z)->vec3d {
-			return vec3d(-y, x, 0);
-		},
-		[&](double x, double y, double z)->vec3d {
-			return vec3d(y, 1-x, 0);
-		}
-	};
-
-	outpfile << "VARIABLES = \"x\" \"y\" \"v1\" \"v2\" \"t1\" \"t2\" \"t3\" \"tr1\" \"tr2\"\n";  
+	outpfile << "VARIABLES = \"x\" \"y\" \"v1\" \"v2\" \"t1\" \"t2\" \"t3\" \n";  
 	
 	while(y < 1) {
 		double x = 0;
-		while (x <= 1 - y) {
+		while (x <= 1) {
 			vec3d val = vector_basis_val(dof_i, x, y, 0);
 			double tau1 = val * vec3d(1, 0, 0);
 			double tau2 = val * vec3d(-1, 1, 0) / vec3d(-1, 1, 0).norm();
 			double tau3 = val * vec3d(0, 1, 0);
-			vec3d true_res = real_bv[dof_i](x, y, 0);
-			outpfile << x << " " << y << " " << val.x << " " << val.y << " " << tau1 << " " << tau2 << " " << tau3 << " " << true_res.x << " " << true_res.y<< endl; 
+			outpfile << x << " " << y << " " << val.x << " " << val.y << " " << tau1 << " " << tau2 << " " << tau3 << endl; 
 			x += h;
 		}
 		y += h;
@@ -229,7 +216,7 @@ void VirtualFace_Hrot::test_print_local_basis(string file_name) {
 
 	while(y < 1) {
 		double x = 0;
-		while (x <= 1 - y) {
+		while (x <= 1) {
 			outp << x << " " << y << " ";
 			auto el_it = find_element(point(x, y, 0));
 			for(auto& dof_it : local_dofs) {
