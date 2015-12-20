@@ -22,6 +22,7 @@ public:
 	
 	void test_calc_points(dof_type dof_i);
 	void test_func_info(dof_type dof_i);
+	void test_print_local_basis(string file_name);
 
 	~VirtualFace_Hrot();
 

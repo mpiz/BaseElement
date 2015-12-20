@@ -88,6 +88,10 @@ sector::sector(vector<node> nodes_s, vector<dof_info> s_dofs) {
 	dofs_number = dofs.size();
 	nodes = nodes_s;
 
+	// Зададим строгий порядок узлов
+	if (nodes[0].number > nodes[1].number)
+		swap(nodes[0], nodes[1]);
+
 	init_coords();
 
 }
@@ -365,7 +369,9 @@ void trelement::init_cords() {
 		vector_basis.push_back(get_vector_basis_for_dof(dofs[i].order, dofs[i].num, dofs[i].geom[0], dofs[i].geom[1]));
 	}
 
-	auto t1 = vector_basis[0](0.1, 0.1, 0);
+	auto t1 = vector_basis[0](0, 0.25, 0);
+	auto t2 = vector_basis[1](0, 0.25, 0);
+	auto t3 = vector_basis[2](0, 0.25, 0);
 
 }
 
@@ -463,7 +469,9 @@ dyn_matrix trelement::get_local_matrix(double mu) {
 		for(int j = 0; j <= i; j++) {
 			vec3d t1 = vector_basis[i](0.1,0.1,0);
 			M[i][j] = integrate([&](double x, double y, double z)->double {
-				return mu * vector_basis[i](x,y,z) * vector_basis[j](x,y,z);
+				auto v1 = vector_basis[i](x,y,z);
+				auto v2 = vector_basis[j](x,y,z);
+				return mu * v1 * v2;
 			});
 			M[j][i] = M[i][j];
 		}
@@ -546,17 +554,32 @@ vec3d trelement::grad_lambda(int i) {
 
  vfunc3d trelement::get_vector_basis_for_dof(dof_type order, dof_type num, dof_type n1, dof_type n2) {
 	int i1, i2;
+	auto s1 = min(n1, n2);
+	auto s2 = max(n1, n2);
 	for(int i = 0; i < element_nodes; i++) {
-		if (i == n1)
+		if (node_array[i].number == s1)
 			i1 = i;
-		if (i == n2)
+		if (node_array[i].number == s2)
 			i2 = i;
 	}
+	vec3d tau(node_array[i1], node_array[i2]);
+	tau = tau / tau.norm();
+
 	vfunc3d res;
 	if(order == 1 && num == 0) {
-		res = [&, i1, i2](double x, double y, double z)->vec3d {
+		res = [&, i1, i2, tau](double x, double y, double z)->vec3d {
 			point pn(x, y, z);
-			return this->lambda(i1, pn) * this->grad_lambda(i2) - this->lambda(i2, pn) * this->grad_lambda(i1);
+			point p_loc = to_local_cord(pn);
+			double l1 = lambda(i1, p_loc);
+			double l2 = lambda(i2, p_loc);
+			vec3d g1 = grad_lambda(i1);
+			vec3d g2 = grad_lambda(i2);
+			vec3d norm1 = g1 / g1.norm();
+			vec3d norm2 = g2 / g2.norm();
+			vec3d v1 = norm1 / (norm1 * tau);
+			vec3d v2 = norm2 / (norm2 * tau);
+
+			return l1 * v2 + l2 * v1;
 		};
 	}
 	else if(order == 1 && num == 1) {

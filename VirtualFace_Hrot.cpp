@@ -106,6 +106,18 @@ void VirtualFace_Hrot::calculate() {
 	generate_matrix_first_bound([&](dof_type basis_i, dof_type cur_dof)->double {
 		return get_bound_value(basis_i, cur_dof);
 	});
+
+#ifdef DEBUGOUTP
+	print_full_matrix("matrix.txt");
+
+	for(size_t i = 0; i < dofs_n; i++) {
+		string s;
+		stringstream ss;
+		ss << "rp_" << i << ".txt";
+		ss >> s;
+		print_right_part(i, s);
+	}
+#endif
 	
 	solve_SLAE();
 
@@ -129,14 +141,15 @@ vec3d VirtualFace_Hrot::vector_basis_val(dof_type basis_i, double x, double y, d
 	if (el == nullptr)
 		return vec3d(0, 0, 0);
 
-	auto local_dofs = el->get_dofs();
-	auto local_dofs_n = local_dofs.size();
+	auto el_dofs = el->get_dofs();
+	auto el_dofs_n = el_dofs.size();
 
 	vec3d res(0, 0, 0);
+	double* basis_sol = solutions[basis_i];
 
-	for(size_t k = 0; k < local_dofs_n; k++) {
+	for(size_t k = 0; k < el_dofs_n; k++) {
 		vec3d basis_val = el->get_vector_basis_dof(k)(x, y, z);
-		res = res + solutions[basis_i][local_dofs[k].number] * basis_val;
+		res = res + basis_sol[el_dofs[k].number] * basis_val;
 	}
 	return res;
 }
@@ -166,11 +179,23 @@ void VirtualFace_Hrot::test_func_info(dof_type dof_i) {
 	ofstream outpfile(file_name.c_str());
 
 	double y = 0;
-	double h = 0.01;
+	double h = 0.02;
 
 	double* q = solutions[dof_i];
 
-	outpfile << "VARIABLES = \"x\" \"y\" \"v1\" \"v2\" \"t1\" \"t2\" \"t3\"\n";  
+	array<vfunc3d, 3> real_bv = {
+		[&](double x, double y, double z)->vec3d {
+			return vec3d(1-y, x, 0);
+		},
+		[&](double x, double y, double z)->vec3d {
+			return vec3d(-y, x, 0);
+		},
+		[&](double x, double y, double z)->vec3d {
+			return vec3d(y, 1-x, 0);
+		}
+	};
+
+	outpfile << "VARIABLES = \"x\" \"y\" \"v1\" \"v2\" \"t1\" \"t2\" \"t3\" \"tr1\" \"tr2\"\n";  
 	
 	while(y < 1) {
 		double x = 0;
@@ -179,13 +204,52 @@ void VirtualFace_Hrot::test_func_info(dof_type dof_i) {
 			double tau1 = val * vec3d(1, 0, 0);
 			double tau2 = val * vec3d(0, 1, 0);
 			double tau3 = val * vec3d(-1, 1, 0) / vec3d(-1, 1, 0).norm();
-			outpfile << x << " " << y << " " << val.x << " " << val.y << " " << tau1 << " " << tau2 << " " << tau3 << endl; 
+			vec3d true_res = real_bv[dof_i](x, y, 0);
+			outpfile << x << " " << y << " " << val.x << " " << val.y << " " << tau1 << " " << tau2 << " " << tau3 << " " << true_res.x << " " << true_res.y<< endl; 
 			x += h;
 		}
 		y += h;
 	}
 
 	outpfile.close();
+
+}
+
+void VirtualFace_Hrot::test_print_local_basis(string file_name) {
+	ofstream outp(file_name.c_str());
+
+	double y = 0;
+	double h = 0.02;
+	outp << "VARIABLES = \"x\" \"y\" ";  
+	for(auto i = 0; i < local_dof_n; i++) {
+		outp << "\"vbasis_" << i << "_x\" ";
+		outp << "\"vbasis_" << i << "_y\" ";
+	}
+	outp << endl;
+
+	while(y < 1) {
+		double x = 0;
+		while (x <= 1 - y) {
+			outp << x << " " << y << " ";
+			auto el_it = find_element(point(x, y, 0));
+			for(auto& dof_it : local_dofs) {
+				vec3d res1(0, 0, 0);
+				auto el_dof = el_it->get_dofs_num();
+					for(size_t dof_i = 0; dof_i < el_dof.size(); dof_i++) {
+						if (el_dof[dof_i] == dof_it.number) {
+							res1 = el_it->get_vector_basis_dof(dof_i)(x, y, 0);
+							break;
+						}
+					}
+				outp << res1.x << " " << res1.y << " ";
+			}
+			outp << endl;
+			x += h;
+		}
+		y += h;
+	}
+
+	outp.close();
 
 }
 

@@ -402,6 +402,11 @@ template<typename elementT> void BaseElement<elementT>::solve_SLAE() {
 	for(size_t basis_i = 0; basis_i < dofs_n; basis_i++) {
 			solver.init(gi.data(), gj.data(), di.data(), gg.data(), local_dof_n);
 			solver.solve(rp[basis_i], solutions[basis_i]);
+
+#ifdef DEBUGOUTP
+	auto sol = solutions[basis_i];
+	continue;
+#endif 
 	}
 }
 
@@ -470,6 +475,7 @@ template<typename elementT> vector<dof_info> BaseElement<elementT>::calc_element
 				local_dof_counter++;
 
 				local_dof_n = local_dof_counter;
+				local_dofs.push_back(ins_dof);
 				edge_type_dofs[tup] = ins_dof;
 				edge_type_dofs_revers[ins_dof] = tup;
 			}
@@ -508,7 +514,6 @@ template<typename elementT> void BaseElement<elementT>::input_mesh(string file_n
 
 	inp_file >> local_nodes_n >> total_element_n;
 	local_nodes.resize(local_nodes_n);
-	local_dofs.resize(local_nodes_n);
 
 	local_dof_n = local_nodes_n;
 
@@ -526,7 +531,6 @@ template<typename elementT> void BaseElement<elementT>::input_mesh(string file_n
 		glob_to_loc[tmp_int] = i;
 		local_nodes[i] = node(x,y,z);
 		local_nodes[i].number = tmp_int;
-		local_dofs[i] = tmp_int;
 	}
 
 	int element_nodes = elementT::element_nodes;
