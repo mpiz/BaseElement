@@ -256,7 +256,8 @@ vfunc3d sector::get_vector_right_part_dof(size_t dof_i) {
 vfunc3d sector::get_vector_right_part(dof_type order, dof_type num) {
 	if (order == 1 && num == 1)
 		return [&](double x, double y, double z)->vec3d {
-			return /*k_sq **/ vbasis_1_1(x, y, z);
+			double t = get_t(x, y, z);
+			return direction + t * normal_in_plane;
 		};
 	else if (order == 1 && num == 2)
 		return [&](double x, double y, double z)->vec3d {
@@ -366,7 +367,8 @@ void trelement::init_cords() {
 
 	vector_basis.reserve(dofs_number);
 	for(int i = 0; i < dofs_number; i++) {
-		vector_basis.push_back(get_vector_basis_for_dof(dofs[i].order, dofs[i].num, dofs[i].geom[0], dofs[i].geom[1]));
+		vector_basis.push_back(get_vector_basis_for_dof(dofs[i].order, dofs[i].num, dofs[i].geom[0], dofs[i].geom[1], FUNC_MODE::SHAPE));
+		vector_basis_rot.push_back(get_vector_basis_for_dof(dofs[i].order, dofs[i].num, dofs[i].geom[0], dofs[i].geom[1], FUNC_MODE::ROTOR));
 	}
 
 	auto t1 = vector_basis[0](0, 0.25, 0);
@@ -471,7 +473,11 @@ dyn_matrix trelement::get_local_matrix(double mu) {
 			M[i][j] = integrate([&](double x, double y, double z)->double {
 				auto v1 = vector_basis[i](x,y,z);
 				auto v2 = vector_basis[j](x,y,z);
-				return mu * v1 * v2;
+
+				auto r1 = vector_basis_rot[i](x, y, z);
+				auto r2 = vector_basis_rot[j](x, y, z);
+
+				return mu*r1*r2 + v1 * v2;
 			});
 			M[j][i] = M[i][j];
 		}
@@ -552,7 +558,7 @@ vec3d trelement::grad_lambda(int i) {
 	return to_global_cord(grad);
 }
 
- vfunc3d trelement::get_vector_basis_for_dof(dof_type order, dof_type num, dof_type n1, dof_type n2) {
+ vfunc3d trelement::get_vector_basis_for_dof(dof_type order, dof_type num, dof_type n1, dof_type n2, FUNC_MODE func_mode) {
 	int i1, i2;
 	auto s1 = min(n1, n2);
 	auto s2 = max(n1, n2);
@@ -567,20 +573,32 @@ vec3d trelement::grad_lambda(int i) {
 
 	vfunc3d res;
 	if(order == 1 && num == 0) {
-		res = [&, i1, i2, tau](double x, double y, double z)->vec3d {
-			point pn(x, y, z);
-			point p_loc = to_local_cord(pn);
-			double l1 = lambda(i1, p_loc);
-			double l2 = lambda(i2, p_loc);
-			vec3d g1 = grad_lambda(i1);
-			vec3d g2 = grad_lambda(i2);
-			vec3d norm1 = g1 / g1.norm();
-			vec3d norm2 = g2 / g2.norm();
-			vec3d v1 = norm1 / (norm1 * tau);
-			vec3d v2 = norm2 / (norm2 * tau);
+		if (func_mode == FUNC_MODE::SHAPE)
+			res = [&, i1, i2, tau](double x, double y, double z)->vec3d {
+				point pn(x, y, z);
+				point p_loc = to_local_cord(pn);
+				double l1 = lambda(i1, p_loc);
+				double l2 = lambda(i2, p_loc);
+				vec3d g1 = grad_lambda(i1);
+				vec3d g2 = grad_lambda(i2);
+				vec3d norm1 = g1 / g1.norm();
+				vec3d norm2 = g2 / g2.norm();
+				vec3d v1 = norm1 / (norm1 * tau);
+				vec3d v2 = norm2 / (norm2 * tau);
 
-			return l1 * v2 + l2 * v1;
-		};
+				return l1 * v2 + l2 * v1;
+			};
+		else if (func_mode == FUNC_MODE::ROTOR)
+			res = [&, i1, i2, tau](double x, double y, double z)->vec3d {
+				vec3d g1 = grad_lambda(i1);
+				vec3d g2 = grad_lambda(i2);
+				vec3d norm1 = g1 / g1.norm();
+				vec3d norm2 = g2 / g2.norm();
+				vec3d v1 = norm1 / (norm1 * tau);
+				vec3d v2 = norm2 / (norm2 * tau);
+
+				return g1.cross(v2) + g2.cross(v1);
+			};	
 	}
 	else if(order == 1 && num == 1) {
 		res = [&, i1, i2](double x, double y, double z)->vec3d {

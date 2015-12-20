@@ -202,8 +202,8 @@ void VirtualFace_Hrot::test_func_info(dof_type dof_i) {
 		while (x <= 1 - y) {
 			vec3d val = vector_basis_val(dof_i, x, y, 0);
 			double tau1 = val * vec3d(1, 0, 0);
-			double tau2 = val * vec3d(0, 1, 0);
-			double tau3 = val * vec3d(-1, 1, 0) / vec3d(-1, 1, 0).norm();
+			double tau2 = val * vec3d(-1, 1, 0) / vec3d(-1, 1, 0).norm();
+			double tau3 = val * vec3d(0, 1, 0);
 			vec3d true_res = real_bv[dof_i](x, y, 0);
 			outpfile << x << " " << y << " " << val.x << " " << val.y << " " << tau1 << " " << tau2 << " " << tau3 << " " << true_res.x << " " << true_res.y<< endl; 
 			x += h;

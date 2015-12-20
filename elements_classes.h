@@ -208,8 +208,10 @@ class trelement : public simple_element {
 	  vec3d grad_basis_3(double x, double y, double z);
 
 	  vector<vfunc3d> vector_basis;
+	  vector<vfunc3d> vector_basis_rot;
 
-	  vfunc3d get_vector_basis_for_dof(dof_type order, dof_type num, dof_type n1, dof_type n2);
+	  enum class FUNC_MODE {SHAPE, ROTOR};
+	  vfunc3d get_vector_basis_for_dof(dof_type order, dof_type num, dof_type n1, dof_type n2, FUNC_MODE func_mode);
 };
 
 
