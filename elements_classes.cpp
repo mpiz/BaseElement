@@ -518,7 +518,7 @@ double trelement::vector_jump_L2(vfunc3d f1, vfunc3d f2) {
 	return integrate([&](double x, double y, double z)->double {
 		vec3d f1_v = f1(x,y,z);
 		vec3d f2_v = f2(x,y,z);
-		double diff = (f1_v - f2_v)*normal_vector;
+		double diff = (f1_v - f2_v)*tr_plane.get_normal();
 
 		return diff*diff;
 	});
@@ -560,7 +560,7 @@ vec3d trelement::grad_lambda(int i) {
 		};
 	}
 	else if(order == 1 && num == 1) {
-		res = [&](double x, double y, double z)->vec3d {
+		res = [&, i1, i2](double x, double y, double z)->vec3d {
 			point pn(x, y, z);
 			return lambda(i1, pn) * grad_lambda(i2) + lambda(i2, pn) * grad_lambda(i1);
 		};

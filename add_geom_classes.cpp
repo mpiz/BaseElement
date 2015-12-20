@@ -29,6 +29,10 @@ array<point,3> plane::get_tr_point() {
 	return trpoint;
 }
 
+vec3d plane::get_normal() const {
+	return normal_vector;
+}
+
 point plane::to_local_cord(point p_glob) {
 	point p_shift = p_glob;
 

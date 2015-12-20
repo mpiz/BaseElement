@@ -134,7 +134,7 @@ vec3d VirtualFace_Hrot::vector_basis_val(dof_type basis_i, double x, double y, d
 
 	vec3d res(0, 0, 0);
 
-	for(int k = 0; k < local_dofs_n; k++) {
+	for(size_t k = 0; k < local_dofs_n; k++) {
 		vec3d basis_val = el->get_vector_basis_dof(k)(x, y, z);
 		res = res + solutions[basis_i][local_dofs[k].number] * basis_val;
 	}
@@ -143,8 +143,8 @@ vec3d VirtualFace_Hrot::vector_basis_val(dof_type basis_i, double x, double y, d
 
 trelement* VirtualFace_Hrot::find_element(point pn) {
 	for(int el_i = 0; el_i < elements_n; el_i++) {
-		if (elements[el_i].in_element(pn.x, pn.y, pn.z))
-			return &elements[el_i];
+		if (elements[el_i]->in_element(pn.x, pn.y, pn.z))
+			return elements[el_i];
 	}
 	return nullptr;
 }
@@ -157,18 +157,29 @@ void VirtualFace_Hrot::test_calc_points(dof_type dof_i) {
 }
 
 void VirtualFace_Hrot::test_func_info(dof_type dof_i) {
-	ofstream outpfile("test_2.txt");
+	string file_name;
+	stringstream ss;
+	ss << "test_2_" << dof_i << ".txt";
+	ss >> file_name;
+
+
+	ofstream outpfile(file_name.c_str());
 
 	double y = 0;
-	double h = 0.1;
+	double h = 0.01;
 
 	double* q = solutions[dof_i];
+
+	outpfile << "VARIABLES = \"x\" \"y\" \"v1\" \"v2\" \"t1\" \"t2\" \"t3\"\n";  
 	
 	while(y < 1) {
 		double x = 0;
-		while (x <= y) {
+		while (x <= 1 - y) {
 			vec3d val = vector_basis_val(dof_i, x, y, 0);
-			outpfile << x << " " << y << " " << val.x << " " << val.y << endl; 
+			double tau1 = val * vec3d(1, 0, 0);
+			double tau2 = val * vec3d(0, 1, 0);
+			double tau3 = val * vec3d(-1, 1, 0) / vec3d(-1, 1, 0).norm();
+			outpfile << x << " " << y << " " << val.x << " " << val.y << " " << tau1 << " " << tau2 << " " << tau3 << endl; 
 			x += h;
 		}
 		y += h;

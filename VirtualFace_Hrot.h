@@ -35,7 +35,7 @@ private:
 	vector<vfunc3d> bound_functions;	// Функции для учёта краевых условий
 	vector<vfunc3d> right_part_functions; // Функции правой части
 
-	vector<sector> bound_elements;
+	vector<sector*> bound_elements;
 
 
 	VirtualEdge_Hrot bound_edge;

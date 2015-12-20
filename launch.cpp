@@ -24,6 +24,8 @@ int main() {
 
 	face.test_calc_points(0);
 	face.test_func_info(0);
+	face.test_func_info(1);
+	face.test_func_info(2);
 
 	return 0;
 }

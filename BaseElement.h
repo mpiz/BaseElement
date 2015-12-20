@@ -26,7 +26,7 @@ template<typename elementT> class BaseElement {
 
 	virtual elementT* find_element(point pn);
 
-	virtual double get_lambda(elementT& el);
+	virtual double get_lambda(elementT* el);
 
 	void input_mesh(string file_name, int valide_code); // ввод сетки из файла для виртуального элемента
 
@@ -63,7 +63,7 @@ template<typename elementT> class BaseElement {
 	  void add_port(int add_el1, int add_el2);
 	  int find_pos(int i, int j);
 
-	 vector<elementT> elements;
+	 vector<elementT*> elements;
 
 	 vector<vector<int>> port_colector;
 
@@ -76,11 +76,11 @@ template<typename elementT> class BaseElement {
 	 vector<double> virtual_solution;
 
 	 int elements_n;
-	 int dofs_n;
-	 int nodes_n;
+	 size_t dofs_n;
+	 size_t nodes_n;
 
-	 int local_dof_n;
-	 int local_nodes_n;
+	 size_t local_dof_n;
+	 size_t local_nodes_n;
 
 	 vector<dof_info> local_dofs;	// Степени свободы внутри элемента
 	 vector<node> local_nodes;	// Узлы внутри элемента
@@ -171,7 +171,7 @@ template<typename elementT> int& BaseElement<elementT>::operator[] (int loc_n) {
 	return dofs[loc_n];
 }
 
-template<typename elementT> double BaseElement<elementT>::get_lambda(elementT& el) {
+template<typename elementT> double BaseElement<elementT>::get_lambda(elementT* el) {
 	return 1.0;
 }
 
@@ -273,7 +273,7 @@ template<typename elementT> void BaseElement<elementT>::generate_port() {
 
 	//Собираем портрет
 	for(int el_i = 0; el_i < elements_n; el_i++) {
-		vector<dof_type> loc_dof = elements[el_i].get_dofs_num();
+		vector<dof_type> loc_dof = elements[el_i]->get_dofs_num();
 		int loc_dof_n = loc_dof.size();
 		
 		for(int i = 0; i < loc_dof_n; i++)
@@ -287,7 +287,7 @@ template<typename elementT> void BaseElement<elementT>::generate_port() {
 	gi_it++;
 
 
-	for(int port_i = 0; port_i < local_dof_n; port_i++) {
+	for(size_t port_i = 0; port_i < local_dof_n; port_i++) {
 		sort(port_colector[port_i].begin(), port_colector[port_i].end());
 		gi[gi_it] = gi[gi_it-1] + port_colector[port_i].size();
 		gi_it++;
@@ -308,44 +308,44 @@ template<typename elementT> template<typename func_t> void BaseElement<elementT>
 	rp.resize(dofs_n);
 	solutions.resize(dofs_n);
 
-	for(int i = 0; i < dofs_n; i++) {
+	for(size_t i = 0; i < dofs_n; i++) {
 		rp[i] = new double [local_dof_n];
 		solutions[i] = new double [local_dof_n];
 	}
 
 	// Обнуление
 	
-	for(int i = 0; i < local_dof_n; i++) {
+	for(size_t i = 0; i < local_dof_n; i++) {
 		di[i] = 0;
-		for(int k = 0; k < dofs_n; k++) {
+		for(size_t k = 0; k < dofs_n; k++) {
 			rp[k][i] = 0;
 			solutions[k][i] = 0;
 		}
 	}
 
-	for(int i = 0; i < gg.size(); i++) 
+	for(size_t i = 0; i < gg.size(); i++) 
 		gg[i] = 0;
 
 	// Собрка
 	for(int el_i = 0; el_i < elements_n; el_i++) {
-		auto el_dof = elements[el_i].get_dofs();
-		int el_dof_n = el_dof.size();
+		auto el_dof = elements[el_i]->get_dofs();
+		size_t el_dof_n = el_dof.size();
 
 		double lambda = get_lambda(elements[el_i]);
 
-		auto A_loc = elements[el_i].get_local_matrix(lambda);
+		auto A_loc = elements[el_i]->get_local_matrix(lambda);
 
 		// Для каждого уравнения будет своя правая часть
-		for(int k = 0; k < dofs_n; k++) {
-			auto b_loc = elements[el_i].get_local_right_part(equation_right_part[k]);
-			for(int i = 0; i < el_dof_n; i++)
+		for(size_t k = 0; k < dofs_n; k++) {
+			auto b_loc = elements[el_i]->get_local_right_part(equation_right_part[k]);
+			for(size_t i = 0; i < el_dof_n; i++)
 				rp[k][el_dof[i].number] += b_loc[i];
 		}
 		
 
-		for(int i = 0; i < el_dof_n; i++) {
+		for(size_t i = 0; i < el_dof_n; i++) {
 			int i_dof = el_dof[i].number;
-			for(int j = 0; j < i; j++) {
+			for(size_t j = 0; j < i; j++) {
 				int pos = find_pos(i_dof,el_dof[j].number);
 				gg[pos] += A_loc[i][j];
 			}
@@ -362,12 +362,12 @@ template<typename elementT> void BaseElement<elementT>::generate_matrix_first_bo
 	vector<double> vals;
 	vals.resize(dofs_n);
 
-	int fb_size = first_bound.size();
+	auto fb_size = first_bound.size();
 
-	for(int k = 0; k < fb_size; k++)	{
+	for(size_t k = 0; k < fb_size; k++)	{
 		int cur_row = first_bound[k];
 
-		for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
+		for(size_t basis_i = 0; basis_i < dofs_n; basis_i++) {
 
 			vals[basis_i] = bound_right_part(basis_i, cur_row);
 			rp[basis_i][cur_row] = vals[basis_i];
@@ -378,16 +378,16 @@ template<typename elementT> void BaseElement<elementT>::generate_matrix_first_bo
 
 		int i_s = gi[cur_row], i_e = gi[cur_row+1];
 		for(int i = i_s; i < i_e; i++){
-			for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
+			for(size_t basis_i = 0; basis_i < dofs_n; basis_i++) {
 				rp[basis_i][gj[i]] -= gg[i]*vals[basis_i];
 			}
 			gg[i] = 0;
 		}
-		for(int p = cur_row + 1; p < local_dof_n; p++){
+		for(size_t p = cur_row + 1; p < local_dof_n; p++){
 			int i_s = gi[p], i_e = gi[p+1];
 			for(int i = i_s; i < i_e; i++){
 				if(gj[i] == cur_row){
-					for(int basis_i = 0; basis_i < dofs_n; basis_i++)
+					for(size_t basis_i = 0; basis_i < dofs_n; basis_i++)
 						rp[basis_i][p] -= gg[i]*vals[basis_i];
 					gg[i] = 0;
 				}
@@ -399,7 +399,7 @@ template<typename elementT> void BaseElement<elementT>::generate_matrix_first_bo
 }
 
 template<typename elementT> void BaseElement<elementT>::solve_SLAE() {
-	for(int basis_i = 0; basis_i < dofs_n; basis_i++) {
+	for(size_t basis_i = 0; basis_i < dofs_n; basis_i++) {
 			solver.init(gi.data(), gj.data(), di.data(), gg.data(), local_dof_n);
 			solver.solve(rp[basis_i], solutions[basis_i]);
 	}
@@ -409,13 +409,13 @@ template<typename elementT> void BaseElement<elementT>::print_full_matrix(string
 
 	ofstream outp(file_name.c_str());
 
-	for(int i = 0; i < local_dof_n; i++) {
-		for(int j = 0; j < local_dof_n; j++) {
+	for(size_t i = 0; i < local_dof_n; i++) {
+		for(size_t j = 0; j < local_dof_n; j++) {
 			double val;
 			if (i == j) 
 				val = di[i];
 			else {
-				int k = find_pos(i, j);
+				size_t k = find_pos(i, j);
 				if( k == -1)
 					val = 0;
 				else
@@ -437,7 +437,7 @@ template<typename elementT> void BaseElement<elementT>::print_right_part(dof_typ
 
 	ofstream outp(file_name.c_str());
 
-	for(int i = 0; i < local_dof_n; i++) {
+	for(size_t i = 0; i < local_dof_n; i++) {
 		outp << rp[dof_i][i] << endl;
 	}
 
@@ -516,7 +516,7 @@ template<typename elementT> void BaseElement<elementT>::input_mesh(string file_n
 	vector<node> tr_node;
 
 	// Вводим узлы
-	for(int i = 0; i < local_nodes_n; i++) {
+	for(size_t i = 0; i < local_nodes_n; i++) {
 		double x, y, z;
 		int tmp_int;
 
@@ -547,7 +547,7 @@ template<typename elementT> void BaseElement<elementT>::input_mesh(string file_n
 		}
 		tr_dofs = calc_element_dofs(tr_node);
 		if(el_code == valide_code)
-			elements.push_back(elementT(tr_node, tr_dofs));
+			elements.push_back(new elementT(tr_node, tr_dofs));
 	
 	}
 	elements_n = elements.size();

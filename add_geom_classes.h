@@ -14,6 +14,7 @@ class plane {
 	double get_jacobian() const;
 	vec3d get_base_vec(size_t i) const;
 	vec3d get_tau(size_t i) const;
+	vec3d get_normal() const;
 
 	bool is_on_plane(point pn);
 

@@ -163,8 +163,6 @@ class trelement : public simple_element {
 
 	 double lambda(int l_i, point p_loc);
 
-	 vec3d normal_vector;
-
 	 vector<tr_bfunc> scalar_basis;
 	 vector<tr_vbfunc> scalar_basis_grad;
 
