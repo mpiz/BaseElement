@@ -33,6 +33,21 @@ vec3d plane::get_normal() const {
 	return normal_vector;
 }
 
+vec3d plane::get_normal_in_plane(vec3d a) const {
+	matrix(3) turn_matrix;
+	turn_matrix[0][0] = 0.0; turn_matrix[0][1] = -1.0; turn_matrix[0][2] = 0.0;
+	turn_matrix[1][0] = 1.0; turn_matrix[1][1] = 0.0; turn_matrix[1][2] = 0.0;
+	turn_matrix[2][0] = 0.0; turn_matrix[2][1] = 0.0; turn_matrix[2][2] = 0.0;
+
+	vec3d a_loc = to_local_cord(a);
+	vec3d a_loc_n = turn_matrix * a_loc;
+	vec3d a_n = to_global_cord(a_loc_n);
+
+	return a_n;
+
+	
+}
+
 point plane::to_local_cord(point p_glob) {
 	point p_shift = p_glob;
 
@@ -52,6 +67,13 @@ point plane::to_local_cord(point p_glob) {
 
 	return p_loc;
 }
+
+vec3d plane::to_local_cord(vec3d v_glob) const {
+
+	vec3d v_loc = transition_matrix * v_glob;
+	return v_loc;
+}
+
 
 point plane::to_global_cord(point p_loc) {
 	point p_turn;
@@ -73,7 +95,7 @@ point plane::to_global_cord(point p_loc) {
 
 }
 
-vec3d plane::to_global_cord(vec3d v_loc) {
+vec3d plane::to_global_cord(vec3d v_loc) const {
 	vec3d v_glob;
 
 	//поворот

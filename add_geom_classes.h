@@ -7,14 +7,18 @@ class plane {
 	 plane(const array<node, 3>& points);
 
 	point to_local_cord(point p_glob);
+	vec3d to_local_cord(vec3d v_glob) const;
+
 	point to_global_cord(point p_loc);
-	vec3d to_global_cord(vec3d v_loc);
+	vec3d to_global_cord(vec3d v_loc) const;
 
 
 	double get_jacobian() const;
 	vec3d get_base_vec(size_t i) const;
 	vec3d get_tau(size_t i) const;
 	vec3d get_normal() const;
+	
+	vec3d get_normal_in_plane(vec3d a) const;
 
 	bool is_on_plane(point pn);
 

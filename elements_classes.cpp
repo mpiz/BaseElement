@@ -120,13 +120,8 @@ void sector::init_coords() {
 	gauss_weights[2] = 5.0 / 9.0;
 
 	if (sector_plane.get_jacobian() != 0) {
-		// ѕолучим локальное представление вектора в плоскости
-		vec3d local_vector = vec3d(sector_plane.to_local_cord(nodes[0]), sector_plane.to_local_cord(nodes[1]));
-		// ѕолучим вектор, нормальный к нему
-		node local_normal_start = node(local_vector.y, 0, 0);
-		node local_normal_end = node(0, local_vector.x, 0);
-		// ѕолучим нормалый вектор в глобальных координатах
-		normal_in_plane = vec3d(sector_plane.to_local_cord(local_normal_start), sector_plane.to_local_cord(local_normal_end));
+		// ѕостроим нормаль
+		normal_in_plane = sector_plane.get_normal_in_plane(direction);
 		normal_in_plane = normal_in_plane / normal_in_plane.norm();
 	}
 	else {
