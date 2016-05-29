@@ -16,6 +16,10 @@ vfunc3d simple_element::get_vector_basis_dof(size_t dof_i) {
 	return get_vector_basis(1, 0);
 }
 
+vfunc3d simple_element::get_vector_basis_rot_dof(size_t dof_i) {
+	throw;
+}
+
 vfunc3d simple_element::get_vector_basis(dof_type order, dof_type num) {
 	return nullptr;
 }
@@ -146,6 +150,10 @@ point sector::get_point(double t) {
 
 	return res;
 
+}
+
+vec3d sector::get_direction() {
+	return direction;
 }
 
 void sector::for_point_on_element(function<void(double, double, double)> func) {
@@ -407,6 +415,10 @@ vec3d trelement::to_global_cord(vec3d v_loc) {
 
 vfunc3d trelement::get_vector_basis_dof(size_t dof_i) {
 	return vector_basis[dof_i];
+}
+
+vfunc3d trelement::get_vector_basis_rot_dof(size_t dof_i) {
+	return vector_basis_rot[dof_i];
 }
 
 double trelement::scalar_basis_v(int i, double x, double y, double z) {

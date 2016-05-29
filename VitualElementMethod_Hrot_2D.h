@@ -18,11 +18,14 @@ public:
 	vec3d vector_basis_val(dof_type basis_i, double x, double y, double z);
 	VirtualFace_Hrot* find_element(point pn);
 
+	double get_lambda(VirtualFace_Hrot* el);
+
 private:
 
 	int local_edges_n;
 	vector<sector*> local_edges;
 
 	map_node_to_edge nodes_to_edges;
+	double bound_func(dof_type basis_i, dof_type cur_row);
 
 };

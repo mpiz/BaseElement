@@ -30,6 +30,12 @@ public:
 
 	void set_mesh_files(string main_mesh, string bound_mesh);
 
+	dyn_matrix get_local_matrix(double k_sq);
+
+	vector<dof_info> get_dofs();
+
+	vector<double> get_local_right_part(vfunc3d rp_func);
+
 	~VirtualFace_Hrot();
 
 private:

@@ -30,6 +30,7 @@ public:
 	virtual vfunc3d get_vector_basis_dof(size_t dof_i);
 	virtual vfunc3d get_vector_basis(dof_type order, dof_type num = 0);
 
+	vfunc3d get_vector_basis_rot_dof(size_t dof_i);
 
 	virtual vfunc3d get_vector_right_part_dof(size_t dof_i);
 	virtual vfunc3d get_vector_right_part(dof_type order, dof_type num = 0);
@@ -79,6 +80,8 @@ public:
 
 	vfunc3d get_vector_right_part_dof(size_t dof_i);
 	vfunc3d get_vector_right_part(dof_type order, dof_type num = 0);
+
+	vec3d get_direction();
 
 
 	static dof_type get_dof_n(dof_type order, dof_type num);
@@ -147,6 +150,7 @@ class trelement : public simple_element {
 
 	 double vector_jump_L2(vfunc3d f1, vfunc3d f2);
 	 vfunc3d get_vector_basis_dof(size_t dof_i);
+	 vfunc3d get_vector_basis_rot_dof(size_t dof_i);
 
 	 static dof_type get_dof_n(dof_type order, dof_type num);
 	 

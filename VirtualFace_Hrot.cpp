@@ -1,5 +1,7 @@
 #include "VirtualFace_Hrot.h"
 
+const double mu0_inv = 1.0/(16 * atan(1.0) * 1e-7);
+
 
 VirtualFace_Hrot::VirtualFace_Hrot() : BaseElement() {
 
@@ -154,6 +156,96 @@ double VirtualFace_Hrot::get_bound_value(dof_type basis_i, dof_type cur_dof) {
 }
 
 
+dyn_matrix VirtualFace_Hrot::get_local_matrix(double k_sq) {
+	dyn_matrix A_loc;
+	A_loc.resize(dofs_n);
+
+	for (int i = 0; i < dofs_n; i++) {
+		A_loc[i].resize(dofs_n);
+		for (int j = 0; j < dofs_n; j++)
+			A_loc[i][j] = 0;
+	}
+	
+	//Пробежимcя по элементам, посчитаем внутри каждого квадратичную форму и сложим
+	for (auto el_i : elements) {
+		for (int i = 0; i < dofs_n; i++) {
+			for (int j = 0; j <= i; j++) {
+
+				auto el_dofs = el_i->get_dofs_num();
+				int el_dofs_n = el_dofs.size();
+
+				double el_res = el_i->integrate([&](double x, double y, double z)->double {
+					vec3d rot_i(0, 0, 0), rot_j(0, 0, 0), val_i(0, 0, 0), val_j(0, 0, 0);
+					for (int tr_dof_i = 0; tr_dof_i < el_dofs_n; tr_dof_i++) {
+						size_t el_i_dof = el_dofs[tr_dof_i];
+						double q_i = solutions[i][el_i_dof];
+						double q_j = solutions[j][el_i_dof];
+						vec3d el_basis = el_i->get_vector_basis_dof(tr_dof_i)(x, y, z);
+						vec3d el_rot = el_i->get_vector_basis_rot_dof(tr_dof_i)(x, y, z);
+
+						rot_i = rot_i + q_i * el_rot;
+						rot_j = rot_j + q_j * el_rot;
+
+						val_i = val_i + q_i * el_basis;
+						val_j = val_j + q_j * el_basis;	
+					}
+					double add_el_value = mu0_inv * rot_i * rot_j + k_sq * val_i * val_j;
+					return add_el_value;
+				});
+
+				A_loc[i][j] += el_res;
+				if(i != j)
+					A_loc[j][i] += el_res;
+			}
+		}
+
+	}
+
+	return A_loc;
+
+}
+
+vector<double> VirtualFace_Hrot::get_local_right_part(vfunc3d rp_func) {
+	vector<double> b_loc;
+	b_loc.resize(dofs_n);
+	for (int i = 0; i < dofs_n; i++)
+		b_loc[i] = 0;
+
+	//Пробежимcя по элементам, посчитаем внутри каждого линейную форму и сложим
+	for (auto el_i : elements) {
+		for (int i = 0; i < dofs_n; i++) {
+
+			auto el_dofs = el_i->get_dofs_num();
+			int el_dofs_n = el_dofs.size();
+
+			double el_res = el_i->integrate([&](double x, double y, double z)->double {
+				vec3d val_i(0, 0, 0);
+				for (int tr_dof_i = 0; tr_dof_i < el_dofs_n; tr_dof_i++) {
+					size_t el_i_dof = el_dofs[tr_dof_i];
+					double q_i = solutions[i][el_i_dof];
+					vec3d el_basis = el_i->get_vector_basis_dof(tr_dof_i)(x, y, z);
+
+					val_i = val_i + q_i * el_basis;
+
+				}
+				vec3d val_f = rp_func(x, y, z);
+				double add_el_value = val_i * val_f;
+				return add_el_value;
+			});
+
+			b_loc[i] += el_res;
+		}
+
+	}
+
+	return b_loc;
+
+}
+
+vector<dof_info> VirtualFace_Hrot::get_dofs() {
+	return dofs;
+}
+
 vec3d VirtualFace_Hrot::vector_basis_val(dof_type basis_i, double x, double y, double z){
 	point pn(x, y, z);
 	auto el = find_element(pn);
@@ -227,7 +319,7 @@ void VirtualFace_Hrot::test_print_local_basis(string file_name) {
 	double y = 0;
 	double h = 0.02;
 	outp << "VARIABLES = \"x\" \"y\" ";  
-	for(auto i = 0; i < local_dof_n; i++) {
+	for(auto i = 0; i < dofs_n; i++) {
 		outp << "\"vbasis_" << i << "_x\" ";
 		outp << "\"vbasis_" << i << "_y\" ";
 	}
@@ -241,14 +333,11 @@ void VirtualFace_Hrot::test_print_local_basis(string file_name) {
 				
 				outp << x << " " << y << " ";
 
-				for (auto& dof_it : local_dofs) {
+				for (auto& dof_it : dofs) {
 					vec3d res1(0, 0, 0);
 					auto el_dof = el_it->get_dofs_num();
 					for (size_t dof_i = 0; dof_i < el_dof.size(); dof_i++) {
-						if (el_dof[dof_i] == dof_it.number) {
-							res1 = el_it->get_vector_basis_dof(dof_i)(x, y, 0);
-							break;
-						}
+							res1 = res1 + solutions[dof_it.number][el_dof[dof_i]] *  el_it->get_vector_basis_dof(dof_i)(x, y, 0);
 					}
 					outp << res1.x << " " << res1.y << " ";
 				}

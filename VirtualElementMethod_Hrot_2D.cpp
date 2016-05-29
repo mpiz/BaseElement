@@ -4,6 +4,16 @@ VirtualElementMethod_Hrot_2D::VirtualElementMethod_Hrot_2D() {
 	dofs_n = 1;
 }
 
+double VirtualElementMethod_Hrot_2D::get_lambda(VirtualFace_Hrot* el) {
+	return 1.0;
+}
+
+double VirtualElementMethod_Hrot_2D::bound_func(dof_type basis_i, dof_type cur_row) {
+	vec3d tau = local_edges[cur_row]->get_direction();
+	double res = vec3d(0.0, 1.0, 0.0) * tau;
+
+	return res;
+}
 
 void VirtualElementMethod_Hrot_2D::calculate() {
 	// Расчитаем базичные функции на элементах
@@ -22,7 +32,20 @@ void VirtualElementMethod_Hrot_2D::calculate() {
 
 		
 	}
+	vector<vfunc3d> rp_functions;
+	rp_functions.push_back([&](double x, double y, double z)->vec3d {
+		return get_lambda(nullptr)*vec3d(0, 1, 0);
+
+	});
+
+
 	generate_port();
+	generate_matrix_with_out_bound(rp_functions);
+	generate_matrix_first_bound([&](dof_type basis_i, dof_type cur_row)->double {
+		return bound_func(basis_i, cur_row);
+	});
+
+	solve_SLAE();
 }
 
 void VirtualElementMethod_Hrot_2D::input_mesh(string file_name) {
@@ -94,7 +117,16 @@ void VirtualElementMethod_Hrot_2D::input_mesh(string file_name) {
 }
 
 void VirtualElementMethod_Hrot_2D::input_bound(string file_name) {
-	throw;
+	ifstream inp_file(file_name.c_str());
+	int fb_size;
+	inp_file >> fb_size;
+	first_bound.reserve(fb_size);
+	for (int i = 0; i < fb_size; i++) {
+		int tmp;
+		inp_file >> tmp;
+		first_bound.push_back(tmp);
+
+	}
 }
 
 vector<dof_info> VirtualElementMethod_Hrot_2D::calc_element_dofs(vector<node>& el_nodes) {
