@@ -13,11 +13,16 @@ void VirtualFace_Hrot::input_bound(string file_name) {
 	bound_edge.input_mesh(file_name);
 }
 
+void VirtualFace_Hrot::input_mesh_from_params() {
+	input_mesh(main_mesh_file_name);
+	input_bound(bound_mesh_file_name);
+}
+
 vector<dof_info> VirtualFace_Hrot::calc_element_dofs(vector<node>& el_nodes) {
 	return calc_element_dofs_edge(el_nodes, sector::get_dof_n(method_order, method_num));
 }
 
-VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, size_t order, dof_type num) {
+VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, map_node_to_edge& node_to_edge, dof_type order, dof_type num) {
 
 	nodes = nodes_s;
 	nodes_n = nodes.size();
@@ -64,15 +69,29 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, size_t order, do
 
 		sector* add_sector = new sector(sector_nodes, face_plane);
 
+		auto global_n1 = nodes[node_i].number;
+		auto global_n2 = nodes[node_next].number;
+		if (global_n1 > global_n2)
+			swap(global_n1, global_n2);
+
+		auto global_dof = node_to_edge[pair<size_t, size_t>(global_n1, global_n2)];
+
+		// ¬водим упрощение, что sec_dof_n = 1
 		auto sec_dof_n = sector::get_dof_n(order, num);
+		if (sec_dof_n != 1)
+			throw "VirtualFace_Hrot::VirtualFace_Hrot - only 1 node for each edge can be used";
+
 		for(size_t dof_i = 0; dof_i < sec_dof_n; dof_i++) {
 
-			dof_info add_dof(counters::get_next_dof(), order, num, dof_i);
+			dof_info add_dof(counters::get_next_dof(this), order, num, dof_i);
 			add_dof.add_geom(nodes[node_i].number);
 			add_dof.add_geom(nodes[node_next].number);
 
 			dofs.push_back(add_dof);
 			add_sector->add_dof(add_dof);
+
+			loc_to_glob[add_dof.number] = global_dof;
+			glob_to_loc[global_dof] = add_dof.number;
 
 			bound_functions.push_back(add_sector->get_vector_basis_dof(dof_i));
 			right_part_functions.push_back(add_sector->get_vector_right_part_dof(dof_i));
@@ -217,20 +236,25 @@ void VirtualFace_Hrot::test_print_local_basis(string file_name) {
 	while(y < 1) {
 		double x = 0;
 		while (x <= 1) {
-			outp << x << " " << y << " ";
 			auto el_it = find_element(point(x, y, 0));
-			for(auto& dof_it : local_dofs) {
-				vec3d res1(0, 0, 0);
-				auto el_dof = el_it->get_dofs_num();
-					for(size_t dof_i = 0; dof_i < el_dof.size(); dof_i++) {
+			if (el_it != nullptr) {
+				
+				outp << x << " " << y << " ";
+
+				for (auto& dof_it : local_dofs) {
+					vec3d res1(0, 0, 0);
+					auto el_dof = el_it->get_dofs_num();
+					for (size_t dof_i = 0; dof_i < el_dof.size(); dof_i++) {
 						if (el_dof[dof_i] == dof_it.number) {
 							res1 = el_it->get_vector_basis_dof(dof_i)(x, y, 0);
 							break;
 						}
 					}
-				outp << res1.x << " " << res1.y << " ";
+					outp << res1.x << " " << res1.y << " ";
+				}
+
+				outp << endl;
 			}
-			outp << endl;
 			x += h;
 		}
 		y += h;
@@ -240,7 +264,25 @@ void VirtualFace_Hrot::test_print_local_basis(string file_name) {
 
 }
 
+void VirtualFace_Hrot::set_mesh_files(string main_mesh, string bound_mesh) {
+	main_mesh_file_name = main_mesh;
+	bound_mesh_file_name = bound_mesh;
+}
+
+
+vector<dof_type> VirtualFace_Hrot::get_dofs_num() {
+	vector<dof_type> dof_global_nums;
+	dof_global_nums.reserve(dofs_n);
+	for (auto& dof_i : dofs) {
+		dof_global_nums.push_back(loc_to_glob[dof_i.number]);
+	}
+
+	return dof_global_nums;
+}
+
+
 VirtualFace_Hrot::~VirtualFace_Hrot() {
 	for(auto& edge : edges)
 		delete edge;
 }
+

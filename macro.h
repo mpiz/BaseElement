@@ -17,6 +17,9 @@ using namespace std;
 // Константа для сранвения геометрии
 #define GEOCONST 1e-6
 
+// Вывод портрета матрицы
+//#define DEBUGPORT
+
 //typedef complex<double> dcomplex;
 
 #ifndef matrix

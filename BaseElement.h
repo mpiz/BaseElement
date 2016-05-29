@@ -286,15 +286,33 @@ template<typename elementT> void BaseElement<elementT>::generate_port() {
 	gi[gi_it] = 0;
 	gi_it++;
 
+#ifdef DEBUGPORT
+	ofstream port_outp("port");
+#endif // DEBUGPORT
+
 
 	for(size_t port_i = 0; port_i < local_dof_n; port_i++) {
+	#ifdef DEBUGPORT
+			port_outp << port_i << ": ";
+	#endif // DEBUGPORT
 		sort(port_colector[port_i].begin(), port_colector[port_i].end());
 		gi[gi_it] = gi[gi_it-1] + port_colector[port_i].size();
 		gi_it++;
 		for(auto iter1 = port_colector[port_i].begin(); iter1 != port_colector[port_i].end(); iter1++) {
 			gj.push_back(*iter1);
+			#ifdef DEBUGPORT
+				port_outp << *iter1 << " ";
+			#endif // DEBUGPORT
+
 		}
+		#ifdef DEBUGPORT
+			port_outp << endl;
+		#endif // DEBUGPORT
 	}
+
+#ifdef DEBUGPORT
+	port_outp.close();
+#endif // DEBUGPORT
 
 	gg.resize(gj.size());
 	di.resize(local_dof_n);

@@ -1,13 +1,27 @@
 #pragma once
 #include <vector>
+#include <map>
 using namespace std;
 
 typedef unsigned int dof_type;
 
 namespace counters {
-	static dof_type get_next_dof() {
+	
+	static dof_type get_next_global_dof() {
 		static dof_type dof_count = 0;
 		return dof_count++;
+	}
+
+	static dof_type get_next_dof(void* obj) {
+
+		static map<void*, dof_type> local_counter;
+
+		if (local_counter.find(obj) != local_counter.end()) {
+			return local_counter[obj]++;
+		}	else {
+			local_counter[obj] = 1;
+			return 0;
+		}
 	}
 };
 

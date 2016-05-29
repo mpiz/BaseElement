@@ -1,4 +1,4 @@
-#include "VirtualFace_Hrot.h"
+#include "VitualElementMethod_Hrot_2D.h"
 
 int main() {
 
@@ -7,7 +7,7 @@ int main() {
 	//nodes.push_back(node(1, 0, 0, 1));
 	//nodes.push_back(node(0, 1, 0, 2));
 
-	nodes.push_back(node(0.2, 0, 0, 0));
+/*	nodes.push_back(node(0.2, 0, 0, 0));
 
 	nodes.push_back(node(0, 0.2, 0, 1));
 	nodes.push_back(node(0, 0.8, 0, 2));
@@ -32,8 +32,12 @@ int main() {
 
 	face.test_calc_points(2);
 	for(int i = 0; i < 9; i++)
-		face.test_func_info(i);
+		face.test_func_info(i);*/
 
+	VirtualElementMethod_Hrot_2D method;
+
+	method.input_mesh("virtual_mesh.txt");
+	method.calculate();
 
 	return 0;
 }

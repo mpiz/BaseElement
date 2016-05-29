@@ -3,26 +3,32 @@
 #include "BaseElement.h"
 #include "VirtualEdge_Hrot.h"
 
+typedef map<pair<size_t, size_t>, size_t> map_node_to_edge;
 
 
 class VirtualFace_Hrot : public BaseElement<trelement> {
 public:
 	VirtualFace_Hrot();
-	VirtualFace_Hrot(const vector<node>& nodes_s, dof_type order, dof_type num = 0);
+	VirtualFace_Hrot(const vector<node>& nodes_s, map_node_to_edge& node_to_edge, dof_type order, dof_type num = 0);
 
 	void calculate();
 	void input_mesh(string file_name);
 	void input_bound(string file_name);
+
+	void input_mesh_from_params();
 
 	vector<dof_info> calc_element_dofs(vector<node>& el_nodes);
 
 	vec3d vector_basis_val(dof_type basis_i, double x, double y, double z);
 	trelement* find_element(point pn);
 
+	vector<dof_type> get_dofs_num();
 	
 	void test_calc_points(dof_type dof_i);
 	void test_func_info(dof_type dof_i);
 	void test_print_local_basis(string file_name);
+
+	void set_mesh_files(string main_mesh, string bound_mesh);
 
 	~VirtualFace_Hrot();
 
@@ -46,6 +52,8 @@ private:
 	dof_type get_bound_dof(dof_type face_dof);
 
 	vector<double*> bound_solutions;
+
+	string main_mesh_file_name, bound_mesh_file_name;
 
 
 };
