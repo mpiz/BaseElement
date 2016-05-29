@@ -92,8 +92,7 @@ VirtualFace_Hrot::VirtualFace_Hrot(const vector<node>& nodes_s, map_node_to_edge
 			dofs.push_back(add_dof);
 			add_sector->add_dof(add_dof);
 
-			loc_to_glob[add_dof.number] = global_dof;
-			glob_to_loc[global_dof] = add_dof.number;
+			virtual_glob_loc[add_dof.number] = global_dof;
 
 			bound_functions.push_back(add_sector->get_vector_basis_dof(dof_i));
 			right_part_functions.push_back(add_sector->get_vector_right_part_dof(dof_i));
@@ -121,6 +120,7 @@ void VirtualFace_Hrot::calculate() {
 
 	sort(first_bound.begin(), first_bound.end());
 
+	cout << "VirtualFace_Hrot generating matrix\n";
 	generate_port();
 	generate_matrix_with_out_bound(right_part_functions);
 
@@ -139,6 +139,8 @@ void VirtualFace_Hrot::calculate() {
 		print_right_part(i, s);
 	}
 #endif
+
+	cout << "VirtualFace_Hrot solving SLAE\n";
 	
 	solve_SLAE();
 
@@ -201,6 +203,21 @@ dyn_matrix VirtualFace_Hrot::get_local_matrix(double k_sq) {
 
 	}
 
+	if (dofs_n == 8) {
+		FILE* foutp = fopen("matrix8.txt", "w");
+		for (int i = 0; i < dofs_n; i++) {
+			for (int j = 0; j < dofs_n; j++) {
+				fprintf(foutp, "%.15lf", A_loc[i][j]);
+				if(j == dofs_n - 1)
+					fprintf(foutp, "\n");
+				else
+					fprintf(foutp, "\t");
+			}
+		}
+		fclose(foutp);
+
+	}
+	
 	return A_loc;
 
 }
@@ -235,6 +252,14 @@ vector<double> VirtualFace_Hrot::get_local_right_part(vfunc3d rp_func) {
 
 			b_loc[i] += el_res;
 		}
+
+	}
+
+	if (dofs_n == 8) {
+		FILE* foutp = fopen("rp8.txt", "w");
+		for (int i = 0; i < dofs_n; i++) 
+				fprintf(foutp, "%.15lf\n", b_loc[i]);
+		fclose(foutp);
 
 	}
 
@@ -273,12 +298,29 @@ trelement* VirtualFace_Hrot::find_element(point pn) {
 	return nullptr;
 }
 
+vec3d VirtualFace_Hrot::get_vector_basis_dof(dof_type& dof_i, double x, double y, double z) {
+	
+	vec3d res(0, 0, 0);
+	auto el_i = find_element(point(x, y, z));
+
+	if (el_i != nullptr) {
+
+		auto el_dofs = el_i->get_dofs_num();
+		auto el_dofs_n = el_dofs.size();
+		for (int i = 0; i < el_dofs_n; i++)
+			res = res + solutions[dof_i][el_dofs[i]] * el_i->get_vector_basis_dof(i)(x, y, z);
+	}
+
+	return res;
+}
+
 void VirtualFace_Hrot::test_calc_points(dof_type dof_i) {
 	bound_edge.print_full_matrix("test_matrix.txt");
 	bound_edge.print_right_part(dof_i, "test_rp.txt");
 	bound_edge.test_calc_points(dof_i);
 
 }
+
 
 void VirtualFace_Hrot::test_func_info(dof_type dof_i) {
 	string file_name;
@@ -322,8 +364,11 @@ void VirtualFace_Hrot::test_print_local_basis(string file_name) {
 	for(auto i = 0; i < dofs_n; i++) {
 		outp << "\"vbasis_" << i << "_x\" ";
 		outp << "\"vbasis_" << i << "_y\" ";
+		outp << "\"vbasis_" << i << "_tau11\" ";
 	}
 	outp << endl;
+	vec3d tau_1(1, 1, 0);
+	tau_1 = tau_1 / tau_1.norm();
 
 	while(y < 1) {
 		double x = 0;
@@ -339,7 +384,7 @@ void VirtualFace_Hrot::test_print_local_basis(string file_name) {
 					for (size_t dof_i = 0; dof_i < el_dof.size(); dof_i++) {
 							res1 = res1 + solutions[dof_it.number][el_dof[dof_i]] *  el_it->get_vector_basis_dof(dof_i)(x, y, 0);
 					}
-					outp << res1.x << " " << res1.y << " ";
+					outp << res1.x << " " << res1.y << " " << res1 * tau_1 << " ";
 				}
 
 				outp << endl;
@@ -363,10 +408,19 @@ vector<dof_type> VirtualFace_Hrot::get_dofs_num() {
 	vector<dof_type> dof_global_nums;
 	dof_global_nums.reserve(dofs_n);
 	for (auto& dof_i : dofs) {
-		dof_global_nums.push_back(loc_to_glob[dof_i.number]);
+		dof_global_nums.push_back(virtual_glob_loc[dof_i.number]);
 	}
 
 	return dof_global_nums;
+}
+
+
+double VirtualFace_Hrot::integrate(func3d func) {
+	double res = 0;
+	for (auto el_i : elements) {
+		res += el_i->integrate(func);
+	}
+	return res;
 }
 
 
@@ -374,4 +428,3 @@ VirtualFace_Hrot::~VirtualFace_Hrot() {
 	for(auto& edge : edges)
 		delete edge;
 }
-

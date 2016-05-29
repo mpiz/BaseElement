@@ -92,6 +92,7 @@ public:
 	bool in_element(double x, double y, double z);
 
 	void for_point_on_element(function<void(double, double, double)> func);
+	vector<node> get_nodes();
 
 private:
 	vector<node> nodes;

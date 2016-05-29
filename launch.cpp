@@ -2,53 +2,55 @@
 
 int main() {
 
-	vector<node> nodes;
-	//nodes.push_back(node(0, 0, 0, 0));
-	//nodes.push_back(node(1, 0, 0, 1));
-	//nodes.push_back(node(0, 1, 0, 2));
+	vector<node> trnodes;
+	vector<dof_info> trdofs;
+	
+	trnodes.push_back(node(0, 0, 0, 0));
+	trnodes.push_back(node(0.2, 0, 0, 1));
+	trnodes.push_back(node(0, 0.2, 0, 2));
 
-	/*nodes.push_back(node(0.2, 0, 0, 0));
+	dof_info di[3];
+	di[0].number = 0;
+	di[0].order = 1;
+	di[0].num = 0;
+	di[0].add_geom(0);
+	di[0].add_geom(1);
 
-	nodes.push_back(node(0, 0.2, 0, 1));
-	nodes.push_back(node(0, 0.8, 0, 2));
+	di[1].number = 1;
+	di[1].order = 1;
+	di[1].num = 0;
+	di[1].add_geom(0);
+	di[1].add_geom(2);
 
-	nodes.push_back(node(0.2, 1, 0, 3));
+	di[2].number = 2;
+	di[2].order = 1;
+	di[2].num = 0;
+	di[2].add_geom(1);
+	di[2].add_geom(2);
 
-	nodes.push_back(node(0.6, 0.6, 0, 4));
+	trdofs.push_back(di[0]);
+	trdofs.push_back(di[1]);
+	trdofs.push_back(di[2]);
 
-	nodes.push_back(node(0.8, 1, 0, 5));
+	trelement tr(trnodes, trdofs);
 
-	nodes.push_back(node(1, 0.8, 0, 6));
-	nodes.push_back(node(1, 0.2, 0, 7));
-
-	nodes.push_back(node(0.8, 0, 0, 8));
-
-	map_node_to_edge gg;
-	gg[pair<size_t, size_t>(0, 1)] = 0;
-	gg[pair<size_t, size_t>(1, 2)] = 0;
-	gg[pair<size_t, size_t>(2, 3)] = 0;
-	gg[pair<size_t, size_t>(3, 4)] = 0;
-	gg[pair<size_t, size_t>(4, 5)] = 0;
-	gg[pair<size_t, size_t>(5, 6)] = 0;
-	gg[pair<size_t, size_t>(6, 7)] = 0;
-	gg[pair<size_t, size_t>(7, 8)] = 0;
-	gg[pair<size_t, size_t>(0, 8)] = 0;
-
-	VirtualFace_Hrot face(nodes, gg, 1, 0);
-
-	face.input_mesh("Face2.dat");
-	face.input_bound("FaceBound2.dat");
-
-	face.calculate();
-	face.test_print_local_basis("test1func.txt");
-	face.test_calc_points(2);
-	for(int i = 0; i < 9; i++)
-		face.test_func_info(i);*/
+	auto A_loc = tr.get_local_matrix(0);
 
 	VirtualElementMethod_Hrot_2D method;
 
+	cout << "Input mesh\n";
 	method.input_mesh("virtual_mesh.txt");
+	cout << "Input bound\n";
+	method.input_bound("virtual_mesh_bound.txt");
 	method.calculate();
+	cout << "Printing solution\n";
+	method.test_print_solution("virtual_solution.txt");
+
+	cout << "Calculating error\n";
+	double err = method.calc_error();
+	FILE* outp = fopen("error.txt", "w");
+	fprintf(outp, "%.5e", err);
+	fclose(outp);
 
 	return 0;
 }

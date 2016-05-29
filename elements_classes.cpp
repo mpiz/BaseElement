@@ -156,6 +156,10 @@ vec3d sector::get_direction() {
 	return direction;
 }
 
+vector<node> sector::get_nodes() {
+	return nodes;
+}
+
 void sector::for_point_on_element(function<void(double, double, double)> func) {
 	double t = 0;
 	double h = 0.1;

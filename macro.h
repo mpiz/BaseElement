@@ -18,7 +18,7 @@ using namespace std;
 #define GEOCONST 1e-6
 
 // Вывод портрета матрицы
-//#define DEBUGPORT
+#define DEBUGPORT
 
 //typedef complex<double> dcomplex;
 

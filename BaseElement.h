@@ -346,7 +346,7 @@ template<typename elementT> template<typename func_t> void BaseElement<elementT>
 
 	// Собрка
 	for(int el_i = 0; el_i < elements_n; el_i++) {
-		auto el_dof = elements[el_i]->get_dofs();
+		auto el_dof = elements[el_i]->get_dofs_num();
 		size_t el_dof_n = el_dof.size();
 
 		double lambda = get_lambda(elements[el_i]);
@@ -357,14 +357,14 @@ template<typename elementT> template<typename func_t> void BaseElement<elementT>
 		for(size_t k = 0; k < dofs_n; k++) {
 			auto b_loc = elements[el_i]->get_local_right_part(equation_right_part[k]);
 			for(size_t i = 0; i < el_dof_n; i++)
-				rp[k][el_dof[i].number] += b_loc[i];
+				rp[k][el_dof[i]] += b_loc[i];
 		}
 		
 
 		for(size_t i = 0; i < el_dof_n; i++) {
-			int i_dof = el_dof[i].number;
+			int i_dof = el_dof[i];
 			for(size_t j = 0; j < i; j++) {
-				int pos = find_pos(i_dof,el_dof[j].number);
+				int pos = find_pos(i_dof,el_dof[j]);
 				gg[pos] += A_loc[i][j];
 			}
 			di[i_dof] += A_loc[i][i];
@@ -418,8 +418,8 @@ template<typename elementT> void BaseElement<elementT>::generate_matrix_first_bo
 
 template<typename elementT> void BaseElement<elementT>::solve_SLAE() {
 	for(size_t basis_i = 0; basis_i < dofs_n; basis_i++) {
-			solver.init(gi.data(), gj.data(), di.data(), gg.data(), local_dof_n);
-			solver.solve(rp[basis_i], solutions[basis_i]);
+		solver.init(gi.data(), gj.data(), di.data(), gg.data(), local_dof_n);
+		solver.solve(rp[basis_i], solutions[basis_i]);
 
 #ifdef DEBUGOUTP
 	auto sol = solutions[basis_i];

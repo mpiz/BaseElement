@@ -19,6 +19,9 @@ public:
 	VirtualFace_Hrot* find_element(point pn);
 
 	double get_lambda(VirtualFace_Hrot* el);
+	void test_print_solution(string file_name);
+	double calc_error();
+
 
 private:
 
@@ -27,5 +30,7 @@ private:
 
 	map_node_to_edge nodes_to_edges;
 	double bound_func(dof_type basis_i, dof_type cur_row);
+
+	vec3d func_in_element(size_t el_i, double x, double y, double z);
 
 };

@@ -35,6 +35,9 @@ public:
 	vector<dof_info> get_dofs();
 
 	vector<double> get_local_right_part(vfunc3d rp_func);
+	vec3d get_vector_basis_dof(dof_type& dof_i, double x, double y, double z);
+
+	double integrate(func3d func);
 
 	~VirtualFace_Hrot();
 
